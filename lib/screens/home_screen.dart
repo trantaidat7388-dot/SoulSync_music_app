@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../services/app_language.dart';
 import 'now_playing_screen.dart';
 import 'genre_detail_screen.dart';
 import 'downloads_screen.dart';
 import 'recently_played_screen.dart';
 import 'sleep_timer_screen.dart';
+import 'playlist_detail_screen.dart';
+import 'all_genres_screen.dart';
 import '../widgets/share_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -96,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // Main Content
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.only(bottom: 140),
               physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,21 +462,31 @@ class _GenresSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
-                'Browse Genres',
-                style: TextStyle(
+                AppLanguage().translate('browse_genres'),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
                 ),
               ),
-              Text(
-                'See All',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllGenresScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'See All',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -651,11 +664,11 @@ class _DailyMixSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'Daily Mix',
-            style: TextStyle(
+            AppLanguage().translate('daily_mix'),
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
@@ -725,7 +738,18 @@ class _DailyMixCardState extends State<_DailyMixCard> {
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlaylistDetailScreen(
+                playlistName: widget.title,
+                playlistCover: widget.imageUrl,
+                songCount: 50,
+              ),
+            ),
+          );
+        },
         child: AnimatedScale(
           scale: _isPressed ? 0.95 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -834,7 +858,7 @@ class _QuickActionsSection extends StatelessWidget {
               _buildQuickAction(
                 context,
                 Icons.history_rounded,
-                'Recently Played',
+                AppLanguage().translate('recently_played'),
                 Colors.purple,
                 () {
                   Navigator.push(

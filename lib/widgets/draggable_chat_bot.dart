@@ -42,8 +42,8 @@ class _DraggableChatBotState extends State<DraggableChatBot> with SingleTickerPr
     // Tính toán vị trí right dựa trên kích thước màn hình
     final rightPosition = screenWidth > 600 ? 32.0 : 20.0;
     
-    // Bottom: cao hơn để tránh mini player và nav bar
-    final bottomPosition = 240.0 + bottomPadding;
+    // Bottom: nav bar height (64) + margin (24*2) + spacing (16) = 128
+    final bottomPosition = 128.0 + bottomPadding;
     
     return Positioned(
       right: rightPosition,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
-import '../widgets/mini_player.dart';
 import '../widgets/draggable_chat_bot.dart';
 import '../widgets/dynamic_island_player.dart';
+import '../services/app_language.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'library_screen.dart';
@@ -17,6 +17,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  final AppLanguage _appLanguage = AppLanguage();
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -24,6 +25,22 @@ class _MainScreenState extends State<MainScreen> {
     LibraryScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    _appLanguage.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,37 +62,31 @@ class _MainScreenState extends State<MainScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const MiniPlayer(),
-                Container(
-                  margin: const EdgeInsets.all(24),
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        offset: const Offset(0, 20),
-                        blurRadius: 40,
-                        spreadRadius: -12,
-                      ),
-                    ],
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    offset: const Offset(0, 20),
+                    blurRadius: 40,
+                    spreadRadius: -12,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildNavItem(Icons.home_rounded, 0),
-                      _buildNavItem(Icons.search_rounded, 1),
-                      _buildNavItem(Icons.camera, 4),
-                      _buildNavItem(Icons.library_music_rounded, 2),
-                      _buildNavItem(Icons.person_rounded, 3),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.home_rounded, 0),
+                  _buildNavItem(Icons.search_rounded, 1),
+                  _buildNavItem(Icons.camera, 4),
+                  _buildNavItem(Icons.library_music_rounded, 2),
+                  _buildNavItem(Icons.person_rounded, 3),
+                ],
+              ),
             ),
           ),
         ],

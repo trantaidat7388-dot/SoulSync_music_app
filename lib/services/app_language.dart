@@ -16,6 +16,33 @@ class AppLanguage extends ChangeNotifier {
 
   // Translations
   static final Map<String, Map<String, String>> _translations = {
+    // Common
+    'search': {'en': 'Search', 'vi': 'Tìm Kiếm'},
+    'library': {'en': 'Library', 'vi': 'Thư Viện'},
+    'home': {'en': 'Home', 'vi': 'Trang Chủ'},
+    
+    // Home Screen
+    'good_morning': {'en': 'Good Morning', 'vi': 'Chào Buổi Sáng'},
+    'good_afternoon': {'en': 'Good Afternoon', 'vi': 'Chào Buổi Chiều'},
+    'good_evening': {'en': 'Good Evening', 'vi': 'Chào Buổi Tối'},
+    'daily_mix': {'en': 'Daily Mix', 'vi': 'Mix Hàng Ngày'},
+    'for_you': {'en': 'For You', 'vi': 'Dành Cho Bạn'},
+    'recently_played': {'en': 'Recently Played', 'vi': 'Nghe Gần Đây'},
+    'browse_genres': {'en': 'Browse Genres', 'vi': 'Duyệt Thể Loại'},
+    'popular_artists': {'en': 'Popular Artists', 'vi': 'Nghệ Sĩ Phổ Biến'},
+    
+    // Search Screen
+    'recent_searches': {'en': 'Recent Searches', 'vi': 'Tìm Kiếm Gần Đây'},
+    'top': {'en': 'Top', 'vi': 'Hàng Đầu'},
+    'artists': {'en': 'Artists', 'vi': 'Nghệ Sĩ'},
+    'albums': {'en': 'Albums', 'vi': 'Album'},
+    'genres': {'en': 'Genres', 'vi': 'Thể Loại'},
+    
+    // Settings Screen
+    'settings': {'en': 'Settings', 'vi': 'Cài Đặt'},
+    'audio_quality': {'en': 'Audio Quality', 'vi': 'Chất Lượng Âm Thanh'},
+    'see_all': {'en': 'See All', 'vi': 'Xem Tất Cả'},
+    
     // Profile Screen
     'profile': {'en': 'Profile', 'vi': 'Hồ Sơ'},
     'edit_profile': {'en': 'Edit Profile', 'vi': 'Chỉnh Sửa Hồ Sơ'},
