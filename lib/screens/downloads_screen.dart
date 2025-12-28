@@ -46,8 +46,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     },
   ];
 
-  String _totalStorage = '2.4 GB';
-  String _availableStorage = '12.6 GB';
+  final String _totalStorage = '2.4 GB';
+  final String _availableStorage = '12.6 GB';
 
   @override
   Widget build(BuildContext context) {

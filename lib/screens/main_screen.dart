@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/draggable_chat_bot.dart';
+import '../widgets/dynamic_island_player.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'library_screen.dart';
@@ -33,6 +34,9 @@ class _MainScreenState extends State<MainScreen> {
             index: _currentIndex,
             children: _screens,
           ),
+          
+          // Dynamic Island Player
+          const DynamicIslandPlayer(),
           
           // Draggable Chat Bot
           const DraggableChatBot(),
