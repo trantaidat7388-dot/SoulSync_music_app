@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import 'now_playing_screen.dart';
 import 'genre_detail_screen.dart';
+import 'downloads_screen.dart';
+import 'recently_played_screen.dart';
+import 'sleep_timer_screen.dart';
+import '../widgets/share_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -111,6 +115,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: SlideTransition(
                       position: _slideAnimations[1],
                       child: const _SearchBar(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeTransition(
+                    opacity: _fadeAnimations[2],
+                    child: SlideTransition(
+                      position: _slideAnimations[2],
+                      child: const _QuickActionsSection(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeTransition(
+                    opacity: _fadeAnimations[2],
+                    child: SlideTransition(
+                      position: _slideAnimations[2],
+                      child: const SocialFeedWidget(),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -461,7 +481,7 @@ class _GenresSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 100,
+          height: 110,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             scrollDirection: Axis.horizontal,
@@ -565,8 +585,8 @@ class _GenreItemState extends State<_GenreItem> with SingleTickerProviderStateMi
             ScaleTransition(
               scale: _scaleAnimation,
               child: Container(
-                height: 72,
-                width: 72,
+                height: 68,
+                width: 68,
                 decoration: BoxDecoration(
                   color: widget.color.withOpacity(0.4),
                   shape: BoxShape.circle,
@@ -583,18 +603,20 @@ class _GenreItemState extends State<_GenreItem> with SingleTickerProviderStateMi
                 child: Icon(
                   widget.icon,
                   color: AppColors.textMain,
-                  size: 28,
+                  size: 26,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               widget.name,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textMain,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             )
           ],
         ),
@@ -776,6 +798,145 @@ class _DailyMixCardState extends State<_DailyMixCard> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Quick Actions Section
+class _QuickActionsSection extends StatelessWidget {
+  const _QuickActionsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textMain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 110,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            children: [
+              _buildQuickAction(
+                context,
+                Icons.history_rounded,
+                'Recently Played',
+                Colors.purple,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RecentlyPlayedScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              _buildQuickAction(
+                context,
+                Icons.download_rounded,
+                'Downloads',
+                Colors.green,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DownloadsScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              _buildQuickAction(
+                context,
+                Icons.bedtime_rounded,
+                'Sleep Timer',
+                Colors.indigo,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SleepTimerScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              _buildQuickAction(
+                context,
+                Icons.people_rounded,
+                'Collaborative',
+                Colors.orange,
+                () {
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) => const CollaborativePlaylistWidget(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAction(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withOpacity(0.2),
+              color.withOpacity(0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

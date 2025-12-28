@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import 'settings_screen.dart';
+import 'downloads_screen.dart';
+import 'recently_played_screen.dart';
+import 'sleep_timer_screen.dart';
+import 'equalizer_screen.dart';
+import 'chat_bot_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -290,7 +296,7 @@ class _SettingsSection extends StatelessWidget {
               trailing: Switch(
                 value: true,
                 onChanged: (value) {},
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
             ),
             const Divider(height: 1),
@@ -312,13 +318,19 @@ class _SettingsSection extends StatelessWidget {
               trailing: Switch(
                 value: false,
                 onChanged: (value) {},
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.language_rounded,
               title: 'Language',
+              trailing: const Icon(Icons.chevron_right_rounded),
+            ),
+            const Divider(height: 1),
+            _SettingItem(
+              icon: Icons.smart_toy_rounded,
+              title: 'AI Assistant',
               trailing: const Icon(Icons.chevron_right_rounded),
             ),
             const Divider(height: 1),
@@ -377,7 +389,40 @@ class _SettingItem extends StatelessWidget {
         ),
       ),
       trailing: trailing,
-      onTap: () {},
+      onTap: () {
+        // Navigate based on title
+        if (title == 'Settings') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          );
+        } else if (title == 'Downloads') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DownloadsScreen()),
+          );
+        } else if (title == 'Recently Played') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const RecentlyPlayedScreen()),
+          );
+        } else if (title == 'Sleep Timer') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SleepTimerScreen()),
+          );
+        } else if (title == 'Equalizer') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const EqualizerScreen()),
+          );
+        } else if (title == 'AI Assistant') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatBotScreen()),
+          );
+        }
+      },
     );
   }
 }

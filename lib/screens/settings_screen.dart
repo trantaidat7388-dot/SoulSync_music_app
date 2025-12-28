@@ -1,0 +1,427 @@
+import 'package:flutter/material.dart';
+import '../theme/colors.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isDarkMode = false;
+  bool _notificationsEnabled = true;
+  bool _autoDownload = false;
+  String _audioQuality = 'High';
+  String _language = 'Tiếng Việt';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // App Bar
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                ),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                title: const Text(
+                  'Settings',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                ),
+                titlePadding: const EdgeInsets.only(left: 64, bottom: 16),
+              ),
+            ),
+
+            // Settings Content
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Appearance Section
+                  _buildSectionTitle('Appearance'),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.dark_mode_rounded,
+                    title: 'Dark Mode',
+                    subtitle: 'Toggle dark theme',
+                    trailing: Switch(
+                      value: _isDarkMode,
+                      onChanged: (value) {
+                        setState(() => _isDarkMode = value);
+                      },
+                      activeColor: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.language_rounded,
+                    title: 'Language',
+                    subtitle: _language,
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _showLanguageDialog(),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Audio Section
+                  _buildSectionTitle('Audio'),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.high_quality_rounded,
+                    title: 'Audio Quality',
+                    subtitle: _audioQuality,
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _showQualityDialog(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.equalizer_rounded,
+                    title: 'Equalizer',
+                    subtitle: 'Customize sound settings',
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      // Navigate to equalizer
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Download Section
+                  _buildSectionTitle('Downloads'),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.download_rounded,
+                    title: 'Auto Download',
+                    subtitle: 'Download liked songs automatically',
+                    trailing: Switch(
+                      value: _autoDownload,
+                      onChanged: (value) {
+                        setState(() => _autoDownload = value);
+                      },
+                      activeColor: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.storage_rounded,
+                    title: 'Storage',
+                    subtitle: '2.4 GB used',
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      // Navigate to storage management
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Notifications Section
+                  _buildSectionTitle('Notifications'),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.notifications_rounded,
+                    title: 'Push Notifications',
+                    subtitle: 'New releases and recommendations',
+                    trailing: Switch(
+                      value: _notificationsEnabled,
+                      onChanged: (value) {
+                        setState(() => _notificationsEnabled = value);
+                      },
+                      activeColor: AppColors.primary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // About Section
+                  _buildSectionTitle('About'),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.info_rounded,
+                    title: 'App Version',
+                    subtitle: '1.0.0',
+                    trailing: const SizedBox(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.policy_rounded,
+                    title: 'Privacy Policy',
+                    subtitle: 'Read our privacy policy',
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.description_rounded,
+                    title: 'Terms of Service',
+                    subtitle: 'Read terms and conditions',
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Logout Button
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.red.shade400,
+                          Colors.red.shade600,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          _showLogoutDialog();
+                        },
+                        child: const Center(
+                          child: Text(
+                            'Logout',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.black54,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.1),
+                        AppColors.secondary.withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                trailing,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Choose Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLanguageOption('Tiếng Việt'),
+            _buildLanguageOption('English'),
+            _buildLanguageOption('日本語'),
+            _buildLanguageOption('한국어'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(String lang) {
+    return RadioListTile<String>(
+      value: lang,
+      groupValue: _language,
+      onChanged: (value) {
+        setState(() => _language = value!);
+        Navigator.pop(context);
+      },
+      title: Text(lang),
+      activeColor: AppColors.primary,
+    );
+  }
+
+  void _showQualityDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Audio Quality'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildQualityOption('Low', '96 kbps'),
+            _buildQualityOption('Medium', '160 kbps'),
+            _buildQualityOption('High', '320 kbps'),
+            _buildQualityOption('Lossless', 'FLAC'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualityOption(String quality, String bitrate) {
+    return RadioListTile<String>(
+      value: quality,
+      groupValue: _audioQuality,
+      onChanged: (value) {
+        setState(() => _audioQuality = value!);
+        Navigator.pop(context);
+      },
+      title: Text(quality),
+      subtitle: Text(bitrate, style: const TextStyle(fontSize: 12)),
+      activeColor: AppColors.primary,
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Handle logout
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

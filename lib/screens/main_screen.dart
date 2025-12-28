@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/draggable_chat_bot.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'library_screen.dart';
@@ -32,6 +33,10 @@ class _MainScreenState extends State<MainScreen> {
             index: _currentIndex,
             children: _screens,
           ),
+          
+          // Draggable Chat Bot
+          const DraggableChatBot(),
+          
           Positioned(
             bottom: 0,
             left: 0,

@@ -269,7 +269,7 @@ class ArtistDetailScreen extends StatelessWidget {
               ),
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
