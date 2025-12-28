@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'theme/colors.dart';
 
 void main() {
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Music App UI',
+      title: 'SoulSync Music',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         // Áp dụng font Plus Jakarta Sans cho toàn bộ app
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),
-      home: const SplashScreen(),
+      home: const OnboardingScreen(),
     );
   }
 }

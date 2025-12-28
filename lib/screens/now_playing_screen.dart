@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import 'lyrics_screen.dart';
+import 'queue_screen.dart';
+import 'equalizer_screen.dart';
+import 'audio_visualizer_screen.dart';
+import '../widgets/share_widgets.dart';
 
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({super.key});
@@ -92,8 +97,88 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          _buildIconButton(Icons.more_horiz_rounded, 24, () {}),
+          _buildIconButton(Icons.more_horiz_rounded, 24, () {
+            _showOptionsMenu(context);
+          }),
         ],
+      ),
+    );
+  }
+
+  void _showOptionsMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.lyrics_rounded, color: AppColors.primary),
+              title: const Text('Lyrics'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LyricsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.queue_music_rounded, color: AppColors.primary),
+              title: const Text('Up Next'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const QueueScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.equalizer_rounded, color: AppColors.primary),
+              title: const Text('Equalizer'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EqualizerScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.graphic_eq_rounded, color: AppColors.primary),
+              title: const Text('Visualizer'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AudioVisualizerScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.share_rounded, color: AppColors.primary),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.pop(context);
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (context) => const ShareMusicWidget(
+                    songTitle: 'Blinding Lights',
+                    artistName: 'The Weeknd',
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
