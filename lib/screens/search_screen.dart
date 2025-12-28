@@ -160,14 +160,7 @@ class _SearchScreenState extends State<SearchScreen>
     }
   }
 
-  List<Track> get _filteredResults {
-    if (_selectedFilter == 'All' || _selectedFilter == 'Songs') {
-      return _searchResults;
-    }
-    // For Artists, Albums, Playlists - could implement specific filtering
-    // For now, return all results as they are all tracks
-    return _searchResults;
-  }
+
 
   void _clearSearch() {
     _searchController.clear();
