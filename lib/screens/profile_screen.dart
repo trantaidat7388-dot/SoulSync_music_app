@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../services/app_language.dart';
 import 'settings_screen.dart';
 import 'downloads_screen.dart';
-import 'recently_played_screen.dart';
-import 'sleep_timer_screen.dart';
-import 'equalizer_screen.dart';
 import 'chat_bot_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AppLanguage _appLanguage = AppLanguage();
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    _appLanguage.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +81,21 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends StatefulWidget {
   const _Header();
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  final AppLanguage _appLanguage = AppLanguage();
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(() => setState(() {}));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,19 +103,27 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
+        children: [
           Text(
-            'Profile',
-            style: TextStyle(
+            _appLanguage.translate('profile'),
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
             ),
           ),
-          Icon(
-            Icons.settings_outlined,
-            color: AppColors.textMain,
-            size: 28,
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: AppColors.textMain,
+              size: 28,
+            ),
           ),
         ],
       ),
@@ -89,8 +131,21 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
+class _ProfileCard extends StatefulWidget {
   const _ProfileCard();
+
+  @override
+  State<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends State<_ProfileCard> {
+  final AppLanguage _appLanguage = AppLanguage();
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(() => setState(() {}));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +205,9 @@ class _ProfileCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                _showEditProfileDialog(context);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -160,9 +217,9 @@ class _ProfileCard extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Edit Profile',
-                style: TextStyle(
+              child: Text(
+                _appLanguage.translate('edit_profile'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -175,8 +232,21 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-class _StatsSection extends StatelessWidget {
+class _StatsSection extends StatefulWidget {
   const _StatsSection();
+
+  @override
+  State<_StatsSection> createState() => _StatsSectionState();
+}
+
+class _StatsSectionState extends State<_StatsSection> {
+  final AppLanguage _appLanguage = AppLanguage();
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(() => setState(() {}));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +258,7 @@ class _StatsSection extends StatelessWidget {
             child: _StatCard(
               icon: Icons.music_note_rounded,
               value: '142',
-              label: 'Songs',
+              label: _appLanguage.translate('songs'),
             ),
           ),
           const SizedBox(width: 16),
@@ -196,7 +266,7 @@ class _StatsSection extends StatelessWidget {
             child: _StatCard(
               icon: Icons.playlist_play_rounded,
               value: '23',
-              label: 'Playlists',
+              label: _appLanguage.translate('playlists'),
             ),
           ),
           const SizedBox(width: 16),
@@ -204,7 +274,7 @@ class _StatsSection extends StatelessWidget {
             child: _StatCard(
               icon: Icons.favorite_rounded,
               value: '89',
-              label: 'Favorites',
+              label: _appLanguage.translate('favorites'),
             ),
           ),
         ],
@@ -269,8 +339,21 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
+class _SettingsSection extends StatefulWidget {
   const _SettingsSection();
+
+  @override
+  State<_SettingsSection> createState() => _SettingsSectionState();
+}
+
+class _SettingsSectionState extends State<_SettingsSection> {
+  final AppLanguage _appLanguage = AppLanguage();
+
+  @override
+  void initState() {
+    super.initState();
+    _appLanguage.addListener(() => setState(() {}));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,65 +375,94 @@ class _SettingsSection extends StatelessWidget {
           children: [
             _SettingItem(
               icon: Icons.notifications_outlined,
-              title: 'Notifications',
+              title: _appLanguage.translate('notifications'),
               trailing: Switch(
                 value: true,
                 onChanged: (value) {},
-                activeThumbColor: AppColors.primary,
+                thumbColor: WidgetStateProperty.all(AppColors.primary),
               ),
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.download_outlined,
-              title: 'Downloaded Songs',
+              title: _appLanguage.translate('downloaded_songs'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DownloadsScreen()),
+                );
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.data_usage_rounded,
-              title: 'Data Usage',
+              title: _appLanguage.translate('data_usage'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                _showDataUsageDialog(context);
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.dark_mode_outlined,
-              title: 'Dark Mode',
+              title: _appLanguage.translate('dark_mode'),
               trailing: Switch(
                 value: false,
                 onChanged: (value) {},
-                activeThumbColor: AppColors.primary,
+                thumbColor: WidgetStateProperty.all(AppColors.primary),
               ),
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.language_rounded,
-              title: 'Language',
+              title: _appLanguage.translate('language'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                _showLanguageDialog(context, () {
+                  setState(() {}); // Refresh UI when language changes
+                });
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.smart_toy_rounded,
-              title: 'AI Assistant',
+              title: _appLanguage.translate('ai_assistant'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatBotScreen()),
+                );
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.help_outline_rounded,
-              title: 'Help & Support',
+              title: _appLanguage.translate('help_support'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                _showHelpDialog(context);
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.info_outline_rounded,
-              title: 'About',
+              title: _appLanguage.translate('about'),
               trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                _showAboutDialog(context);
+              },
             ),
             const Divider(height: 1),
             _SettingItem(
               icon: Icons.logout_rounded,
-              title: 'Logout',
+              title: _appLanguage.translate('logout'),
               trailing: const Icon(Icons.chevron_right_rounded),
               textColor: Colors.red,
+              onTap: () {
+                _showLogoutDialog(context);
+              },
             ),
           ],
         ),
@@ -364,12 +476,14 @@ class _SettingItem extends StatelessWidget {
   final String title;
   final Widget trailing;
   final Color? textColor;
+  final VoidCallback? onTap;
 
   const _SettingItem({
     required this.icon,
     required this.title,
     required this.trailing,
     this.textColor,
+    this.onTap,
   });
 
   @override
@@ -389,39 +503,398 @@ class _SettingItem extends StatelessWidget {
         ),
       ),
       trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
+// Dialog Functions
+void _showEditProfileDialog(BuildContext context) {
+  final AppLanguage appLanguage = AppLanguage();
+  final nameController = TextEditingController(text: 'Alex Johnson');
+  final emailController = TextEditingController(text: 'alex.johnson@email.com');
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        appLanguage.translate('edit_profile'),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: appLanguage.translate('name'),
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: emailController,
+            decoration: InputDecoration(
+              labelText: appLanguage.translate('email'),
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(appLanguage.translate('cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(appLanguage.translate('profile_updated'))),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(appLanguage.translate('save')),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showDataUsageDialog(BuildContext context) {
+  final AppLanguage appLanguage = AppLanguage();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        appLanguage.translate('data_usage'),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DataUsageItem(appLanguage.translate('streaming'), '2.4 GB', Icons.wifi_rounded),
+          const SizedBox(height: 12),
+          _DataUsageItem(appLanguage.translate('downloads'), '1.8 GB', Icons.download_rounded),
+          const SizedBox(height: 12),
+          _DataUsageItem(appLanguage.translate('cache'), '456 MB', Icons.cached_rounded),
+          const Divider(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                appLanguage.translate('total_usage'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const Text(
+                '4.7 GB',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(appLanguage.translate('close')),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(appLanguage.translate('cache_cleared'))),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(appLanguage.translate('clear_cache')),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showLanguageDialog(BuildContext context, Function() onLanguageChanged) {
+  final AppLanguage appLanguage = AppLanguage();
+  final languages = [
+    {'code': 'en', 'name': 'English', 'flag': '🇬🇧'},
+    {'code': 'vi', 'name': 'Tiếng Việt', 'flag': '🇻🇳'},
+  ];
+  
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            appLanguage.translate('select_language'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: languages.map((language) {
+                final isSelected = appLanguage.currentLanguage == language['code'];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? AppColors.primary.withOpacity(0.1) 
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected 
+                          ? AppColors.primary 
+                          : Colors.grey.withOpacity(0.3),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: Text(
+                      language['flag'] as String,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                    title: Text(
+                      language['name'] as String,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? AppColors.primary : AppColors.textMain,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle, color: AppColors.primary)
+                        : null,
+                    onTap: () {
+                      // Thay đổi ngôn ngữ
+                      appLanguage.setLanguage(language['code'] as String);
+                      onLanguageChanged();
+                      Navigator.pop(context);
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${appLanguage.translate('language_changed')} ${language['name']}',
+                          ),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(appLanguage.translate('cancel')),
+          ),
+        ],
+      );
+      },
+    ),
+  );
+}
+
+void _showHelpDialog(BuildContext context) {
+  final AppLanguage appLanguage = AppLanguage();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        appLanguage.translate('help_support'),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _HelpItem(Icons.question_answer_rounded, appLanguage.translate('faq')),
+          _HelpItem(Icons.email_rounded, appLanguage.translate('contact_support')),
+          _HelpItem(Icons.bug_report_rounded, appLanguage.translate('report_bug')),
+          _HelpItem(Icons.feedback_rounded, appLanguage.translate('send_feedback')),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(appLanguage.translate('close')),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showAboutDialog(BuildContext context) {
+  final AppLanguage appLanguage = AppLanguage();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        appLanguage.translate('about_soulsync'),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 80,
+            width: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primary, AppColors.secondary],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.music_note_rounded,
+              size: 40,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'SoulSync',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            appLanguage.translate('version'),
+            style: const TextStyle(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            appLanguage.translate('music_companion'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            appLanguage.translate('copyright'),
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(appLanguage.translate('close')),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showLogoutDialog(BuildContext context) {
+  final AppLanguage appLanguage = AppLanguage();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        appLanguage.translate('logout'),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Text(appLanguage.translate('logout_confirm')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(appLanguage.translate('cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(appLanguage.translate('logout')),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DataUsageItem extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  const _DataUsageItem(this.title, this.value, this.icon);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HelpItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _HelpItem(this.icon, this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLanguage appLanguage = AppLanguage();
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(title),
+      trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () {
-        // Navigate based on title
-        if (title == 'Settings') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-          );
-        } else if (title == 'Downloads') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const DownloadsScreen()),
-          );
-        } else if (title == 'Recently Played') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RecentlyPlayedScreen()),
-          );
-        } else if (title == 'Sleep Timer') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SleepTimerScreen()),
-          );
-        } else if (title == 'Equalizer') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const EqualizerScreen()),
-          );
-        } else if (title == 'AI Assistant') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ChatBotScreen()),
-          );
-        }
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${appLanguage.translate('opening')} $title...')),
+        );
       },
     );
   }

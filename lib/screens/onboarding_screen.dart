@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
-import 'main_screen.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -280,7 +280,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _skipToHome() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => const MainScreen(),
+        builder: (context) => const LoginScreen(),
       ),
     );
   }

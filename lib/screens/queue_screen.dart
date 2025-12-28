@@ -9,7 +9,7 @@ class QueueScreen extends StatefulWidget {
 }
 
 class _QueueScreenState extends State<QueueScreen> {
-  List<Map<String, String>> _queue = [
+  final List<Map<String, String>> _queue = [
     {
       'title': 'Blinding Lights',
       'artist': 'The Weeknd',
