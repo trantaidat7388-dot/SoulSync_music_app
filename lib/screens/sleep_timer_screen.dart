@@ -471,7 +471,7 @@ class _SleepTimerScreenState extends State<SleepTimerScreen>
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/chat_bot_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DraggableChatBot extends StatefulWidget {
   const DraggableChatBot({super.key});
@@ -11,6 +12,13 @@ class DraggableChatBot extends StatefulWidget {
 class _DraggableChatBotState extends State<DraggableChatBot> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  
+  // Default position (bottom right)
+  static const double _defaultRight = 20.0;
+  static const double _defaultBottom = 128.0;
+  
+  double _right = _defaultRight;
+  double _bottom = _defaultBottom;
 
   @override
   void initState() {
@@ -25,6 +33,26 @@ class _DraggableChatBotState extends State<DraggableChatBot> with SingleTickerPr
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    
+    _loadPosition();
+  }
+  
+  Future<void> _loadPosition() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Always reset to default position on app start (simulating login)
+    setState(() {
+      _right = _defaultRight;
+      _bottom = _defaultBottom;
+    });
+    // Clear any saved position
+    await prefs.remove('chatbot_right');
+    await prefs.remove('chatbot_bottom');
+  }
+  
+  Future<void> _savePosition() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('chatbot_right', _right);
+    await prefs.setDouble('chatbot_bottom', _bottom);
   }
 
   @override
@@ -35,20 +63,35 @@ class _DraggableChatBotState extends State<DraggableChatBot> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    // Responsive positioning
+    final screenSize = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    // Tính toán vị trí right dựa trên kích thước màn hình
-    final rightPosition = screenWidth > 600 ? 32.0 : 20.0;
-    
-    // Bottom: nav bar height (64) + margin (24*2) + spacing (16) = 128
-    final bottomPosition = 128.0 + bottomPadding;
     
     return Positioned(
-      right: rightPosition,
-      bottom: bottomPosition,
-      child: _buildChatBotButton(),
+      right: _right,
+      bottom: _bottom + bottomPadding,
+      child: Draggable(
+        feedback: _buildChatBotButton(),
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: _buildChatBotButton(),
+        ),
+        onDragEnd: (details) {
+          setState(() {
+            // Calculate position from right and bottom
+            final left = details.offset.dx;
+            final top = details.offset.dy;
+            
+            _right = screenSize.width - left - 64;
+            _bottom = screenSize.height - top - 64 - bottomPadding;
+            
+            // Constrain to screen bounds
+            _right = _right.clamp(16.0, screenSize.width - 80);
+            _bottom = _bottom.clamp(80.0, screenSize.height - 200);
+          });
+          _savePosition();
+        },
+        child: _buildChatBotButton(),
+      ),
     );
   }
 

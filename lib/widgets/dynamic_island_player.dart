@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
-import '../screens/now_playing_screen.dart';
 
 class DynamicIslandPlayer extends StatefulWidget {
   const DynamicIslandPlayer({super.key});
@@ -226,9 +225,10 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
             scale: 0.9 + (_contentAnimation.value * 0.1),
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                   // Header with album art, title and Spotify icon
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,6 +395,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                   ),
                 ],
               ),
+            ),
             ),
           ),
         );
