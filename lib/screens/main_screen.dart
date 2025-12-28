@@ -82,6 +82,7 @@ class _MainScreenState extends State<MainScreen> {
                 children: [
                   _buildNavItem(Icons.home_rounded, 0),
                   _buildNavItem(Icons.search_rounded, 1),
+                  _buildNavItem(Icons.camera, 4),
                   _buildNavItem(Icons.library_music_rounded, 2),
                   _buildNavItem(Icons.person_rounded, 3),
                 ],
