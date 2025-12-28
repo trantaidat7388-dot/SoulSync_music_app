@@ -95,7 +95,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                         _isEnabled = value;
                       });
                     },
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
                 ],
               ),

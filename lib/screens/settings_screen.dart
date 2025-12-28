@@ -86,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -135,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (value) {
                         setState(() => _autoDownload = value);
                       },
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -163,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (value) {
                         setState(() => _notificationsEnabled = value);
                       },
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                     ),
                   ),
 

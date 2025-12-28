@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/colors.dart';
+import '../screens/friends_activity_screen.dart';
 
 class ShareMusicWidget extends StatelessWidget {
   final String songTitle;
@@ -284,22 +285,47 @@ class SocialFeedWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(20),
-          child: Text(
-            'Friends Activity',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Friends Activity',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textMain,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FriendsActivityScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'See all',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 120,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: 5,
             itemBuilder: (context, index) {
               return _buildFriendActivity(index, context);
@@ -312,11 +338,41 @@ class SocialFeedWidget extends StatelessWidget {
 
   Widget _buildFriendActivity(int index, BuildContext context) {
     final friends = [
-      {'name': 'Alice', 'song': 'Levitating'},
-      {'name': 'Bob', 'song': 'Blinding Lights'},
-      {'name': 'Carol', 'song': 'Peaches'},
-      {'name': 'David', 'song': 'Good 4 U'},
-      {'name': 'Emma', 'song': 'Stay'},
+      {
+        'name': 'Alice',
+        'song': 'Levitating',
+        'artist': 'Dua Lipa',
+        'image': 'https://i.pravatar.cc/150?img=1',
+        'cover': 'https://picsum.photos/seed/alice/300/300',
+      },
+      {
+        'name': 'Bob',
+        'song': 'Blinding Lights',
+        'artist': 'The Weeknd',
+        'image': 'https://i.pravatar.cc/150?img=2',
+        'cover': 'https://picsum.photos/seed/bob/300/300',
+      },
+      {
+        'name': 'Carol',
+        'song': 'Peaches',
+        'artist': 'Justin Bieber',
+        'image': 'https://i.pravatar.cc/150?img=3',
+        'cover': 'https://picsum.photos/seed/carol/300/300',
+      },
+      {
+        'name': 'David',
+        'song': 'Good 4 U',
+        'artist': 'Olivia Rodrigo',
+        'image': 'https://i.pravatar.cc/150?img=4',
+        'cover': 'https://picsum.photos/seed/david/300/300',
+      },
+      {
+        'name': 'Emma',
+        'song': 'Stay',
+        'artist': 'The Kid LAROI',
+        'image': 'https://i.pravatar.cc/150?img=5',
+        'cover': 'https://picsum.photos/seed/emma/300/300',
+      },
     ];
 
     final friend = friends[index];
@@ -336,66 +392,125 @@ class SocialFeedWidget extends StatelessWidget {
       },
       child: Container(
         width: 140,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.primary.withOpacity(0.1),
-              AppColors.secondary.withOpacity(0.1),
-            ],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                friend['name']![0],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              friend['name']!,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            // Album Cover
+            Stack(
               children: [
-                Icon(
-                  Icons.music_note_rounded,
-                  size: 11,
-                  color: Colors.grey.shade600,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Image.network(
+                    friend['cover']!,
+                    height: 100,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 100,
+                        color: AppColors.primary.withOpacity(0.2),
+                        child: const Icon(
+                          Icons.music_note_rounded,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                const SizedBox(width: 3),
-                Flexible(
-                  child: Text(
-                    friend['song']!,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade600,
+                // Friend Avatar
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        friend['image']!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.primary,
+                            child: Center(
+                              child: Text(
+                                friend['name']![0],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Friend Info
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    friend['name']!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMain,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    friend['song']!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMain,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    friend['artist']!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted.withOpacity(0.7),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

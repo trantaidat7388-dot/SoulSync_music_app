@@ -5,6 +5,7 @@ import 'settings_screen.dart';
 import 'downloads_screen.dart';
 import 'chat_bot_screen.dart';
 import 'help_support_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -302,40 +303,46 @@ class _ProfileCardState extends State<_ProfileCard> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Alex Johnson',
+              'Alex Morgan',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textMain,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'alex.johnson@email.com',
+            Text(
+              _appLanguage.translate('premium_member'),
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textMuted,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted.withOpacity(0.8),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                _showEditProfileDialog(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 elevation: 0,
               ),
-              child: Text(
-                _appLanguage.translate('edit_profile'),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              child: const Text(
+                'Edit Profile',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
