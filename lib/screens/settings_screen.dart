@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../services/app_language.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,7 +14,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _autoDownload = false;
   String _audioQuality = 'High';
-  String _language = 'Tiếng Việt';
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +48,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               flexibleSpace: FlexibleSpaceBar(
-                title: const Text(
-                  'Settings',
-                  style: TextStyle(
+                title: Text(
+                  AppLanguage().translate('settings'),
+                  style: const TextStyle(
                     color: Colors.black87,
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
@@ -70,12 +70,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 12),
                   _buildSettingCard(
                     icon: Icons.dark_mode_rounded,
-                    title: 'Dark Mode',
+                    title: AppLanguage().translate('dark_mode'),
                     subtitle: 'Toggle dark theme',
                     trailing: Switch(
                       value: _isDarkMode,
                       onChanged: (value) {
                         setState(() => _isDarkMode = value);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_isDarkMode 
+                              ? '🌙 Dark mode will be available in next update!' 
+                              : '☀️ Light mode active'),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: AppColors.primary,
+                          ),
+                        );
                       },
                       activeColor: AppColors.primary,
                     ),
@@ -83,8 +92,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 12),
                   _buildSettingCard(
                     icon: Icons.language_rounded,
-                    title: 'Language',
-                    subtitle: _language,
+                    title: AppLanguage().translate('language'),
+                    subtitle: AppLanguage().currentLanguage == 'vi' ? 'Tiếng Việt' : 'English',
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () => _showLanguageDialog(),
                   ),
@@ -96,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 12),
                   _buildSettingCard(
                     icon: Icons.high_quality_rounded,
-                    title: 'Audio Quality',
+                    title: AppLanguage().translate('audio_quality'),
                     subtitle: _audioQuality,
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () => _showQualityDialog(),
@@ -143,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 32),
 
                   // Notifications Section
-                  _buildSectionTitle('Notifications'),
+                  _buildSectionTitle(AppLanguage().translate('notifications')),
                   const SizedBox(height: 12),
                   _buildSettingCard(
                     icon: Icons.notifications_rounded,
@@ -334,34 +343,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageDialog() {
+    final AppLanguage appLanguage = AppLanguage();
+    final languages = [
+      {'code': 'en', 'name': 'English', 'flag': '🇬🇧'},
+      {'code': 'vi', 'name': 'Tiếng Việt', 'flag': '🇻🇳'},
+    ];
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Choose Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildLanguageOption('Tiếng Việt'),
-            _buildLanguageOption('English'),
-            _buildLanguageOption('日本語'),
-            _buildLanguageOption('한국어'),
-          ],
-        ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(
+              appLanguage.translate('select_language'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: languages.map((language) {
+                  final isSelected = appLanguage.currentLanguage == language['code'];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? AppColors.primary.withOpacity(0.1) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected 
+                            ? AppColors.primary 
+                            : Colors.grey.withOpacity(0.3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Text(
+                        language['flag'] as String,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                      title: Text(
+                        language['name'] as String,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? AppColors.primary : AppColors.textMain,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle, color: AppColors.primary)
+                          : null,
+                      onTap: () {
+                        // Change language globally
+                        appLanguage.setLanguage(language['code'] as String);
+                        setState(() {}); // Rebuild settings screen
+                        Navigator.pop(context);
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${appLanguage.translate('language_changed')} ${language['name']}',
+                            ),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildLanguageOption(String lang) {
-    return RadioListTile<String>(
-      value: lang,
-      groupValue: _language,
-      onChanged: (value) {
-        setState(() => _language = value!);
-        Navigator.pop(context);
-      },
-      title: Text(lang),
-      activeColor: AppColors.primary,
     );
   }
 

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../services/app_language.dart';
 import '../services/deezer_service.dart';
 import '../models/music_models.dart';
+import 'playlist_detail_screen.dart';
+import 'artist_detail_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -121,25 +124,109 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
 class _Header extends StatelessWidget {
   const _Header();
 
+  void _showCreatePlaylistDialog(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            'Create Playlist',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textMain,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Playlist name',
+                  filled: true,
+                  fillColor: AppColors.backgroundLight,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Playlist "${nameController.text}" created!'),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
+        children: [
           Text(
-            'Library',
-            style: TextStyle(
+            AppLanguage().translate('library'),
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
             ),
           ),
-          Icon(
-            Icons.add_circle_outline_rounded,
-            color: AppColors.primary,
-            size: 28,
+          GestureDetector(
+            onTap: () => _showCreatePlaylistDialog(context),
+            child: const Icon(
+              Icons.add_circle_outline_rounded,
+              color: AppColors.primary,
+              size: 28,
+            ),
           ),
         ],
       ),
@@ -168,11 +255,11 @@ class _TabBar extends StatelessWidget {
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-        tabs: const [
-          Tab(text: 'Playlists'),
-          Tab(text: 'Songs'),
-          Tab(text: 'Albums'),
-          Tab(text: 'Artists'),
+        tabs: [
+          Tab(text: AppLanguage().translate('playlists')),
+          Tab(text: AppLanguage().translate('songs')),
+          Tab(text: AppLanguage().translate('albums')),
+          Tab(text: AppLanguage().translate('artists')),
         ],
       ),
     );
@@ -192,7 +279,7 @@ class _PlaylistsTab extends StatelessWidget {
     ];
 
     return ListView.separated(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
       itemCount: playlists.length,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
@@ -235,7 +322,18 @@ class _PlaylistItemState extends State<_PlaylistItem> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlaylistDetailScreen(
+              playlistName: widget.playlist['name'] as String,
+              playlistCover: 'https://picsum.photos/400/400',
+              songCount: int.parse((widget.playlist['count'] as String).split(' ')[0]),
+            ),
+          ),
+        );
+      },
       child: AnimatedScale(
         scale: _isPressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 150),
@@ -589,7 +687,7 @@ class _AlbumsTabState extends State<_AlbumsTab> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
@@ -612,11 +710,19 @@ class _AlbumsTabState extends State<_AlbumsTab> {
               ),
             );
           },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ClipRRect(
+          child: GestureDetector(
+            onTap: () {
+              // Navigate to album detail or artist detail
+              // For now just show a message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Opening ${album.name}')),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: album.imageUrl.isNotEmpty
                       ? Image.network(
@@ -684,6 +790,7 @@ class _AlbumsTabState extends State<_AlbumsTab> {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
+          ),
           ),
         );
       },
@@ -787,7 +894,7 @@ class _ArtistsTabState extends State<_ArtistsTab> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
       itemCount: _artists.length,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
@@ -805,19 +912,31 @@ class _ArtistsTabState extends State<_ArtistsTab> {
               ),
             );
           },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ArtistDetailScreen(
+                    artistName: artist.name,
+                    artistImage: artist.imageUrl,
+                  ),
                 ),
-              ],
-            ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
             child: Row(
               children: [
                 ClipOval(
@@ -897,6 +1016,7 @@ class _ArtistsTabState extends State<_ArtistsTab> {
                   },
                 ),
               ],
+            ),
             ),
           ),
         );

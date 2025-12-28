@@ -302,7 +302,7 @@ class SocialFeedWidget extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: 5,
             itemBuilder: (context, index) {
-              return _buildFriendActivity(index);
+              return _buildFriendActivity(index, context);
             },
           ),
         ),
@@ -310,7 +310,7 @@ class SocialFeedWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildFriendActivity(int index) {
+  Widget _buildFriendActivity(int index, BuildContext context) {
     final friends = [
       {'name': 'Alice', 'song': 'Levitating'},
       {'name': 'Bob', 'song': 'Blinding Lights'},
@@ -321,70 +321,84 @@ class SocialFeedWidget extends StatelessWidget {
 
     final friend = friends[index];
 
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.secondary.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 22,
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${friend['name']} is listening to ${friend['song']}'),
             backgroundColor: AppColors.primary,
-            child: Text(
-              friend['name']![0],
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            friend['name']!,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.music_note_rounded,
-                size: 11,
-                color: Colors.grey.shade600,
-              ),
-              const SizedBox(width: 3),
-              Flexible(
-                child: Text(
-                  friend['song']!,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey.shade600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+        );
+      },
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withOpacity(0.1),
+              AppColors.secondary.withOpacity(0.1),
             ],
           ),
-        ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: AppColors.primary,
+              child: Text(
+                friend['name']![0],
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              friend['name']!,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.music_note_rounded,
+                  size: 11,
+                  color: Colors.grey.shade600,
+                ),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    friend['song']!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

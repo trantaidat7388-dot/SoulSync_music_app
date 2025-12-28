@@ -4,6 +4,7 @@ import '../services/app_language.dart';
 import 'settings_screen.dart';
 import 'downloads_screen.dart';
 import 'chat_bot_screen.dart';
+import 'help_support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -62,15 +63,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
-                children: const [
-                  _Header(),
-                  SizedBox(height: 24),
-                  _ProfileCard(),
-                  SizedBox(height: 32),
+                children: [
+                  const _Header(),
+                  const SizedBox(height: 24),
+                  const _ProfileCard(),
+                  const SizedBox(height: 32),
                   _StatsSection(),
-                  SizedBox(height: 32),
-                  _SettingsSection(),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 32),
+                  const _SettingsSection(),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -166,24 +167,137 @@ class _ProfileCardState extends State<_ProfileCard> {
         ),
         child: Column(
           children: [
-            Container(
-              height: 100,
-              width: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 20,
+            GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.white,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  builder: (context) => Container(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Change Profile Picture',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textMain,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildChangeAvatarOption(
+                          Icons.camera_alt_rounded,
+                          'Take Photo',
+                          () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Camera feature coming soon!'),
+                                backgroundColor: AppColors.primary,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildChangeAvatarOption(
+                          Icons.photo_library_rounded,
+                          'Choose from Gallery',
+                          () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Gallery feature coming soon!'),
+                                backgroundColor: AppColors.primary,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildChangeAvatarOption(
+                          Icons.delete_outline_rounded,
+                          'Remove Photo',
+                          () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Photo removed!'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Stack(
+                children: [
+                  Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        'https://i.pravatar.cc/150?img=32',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      height: 32,
+                      width: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  'https://i.pravatar.cc/150?img=32',
-                  fit: BoxFit.cover,
-                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -230,10 +344,111 @@ class _ProfileCardState extends State<_ProfileCard> {
       ),
     );
   }
+
+  Widget _buildChangeAvatarOption(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMain,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context) {
+    final nameController = TextEditingController(text: 'Alex Johnson');
+    final emailController = TextEditingController(text: 'alex.johnson@email.com');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          _appLanguage.translate('edit_profile'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: _appLanguage.translate('name'),
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: _appLanguage.translate('email'),
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_appLanguage.translate('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(_appLanguage.translate('profile_updated'))),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(_appLanguage.translate('save')),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StatsSection extends StatefulWidget {
-  const _StatsSection();
 
   @override
   State<_StatsSection> createState() => _StatsSectionState();
@@ -255,26 +470,68 @@ class _StatsSectionState extends State<_StatsSection> {
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
-              icon: Icons.music_note_rounded,
-              value: '142',
-              label: _appLanguage.translate('songs'),
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Viewing all songs...'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
+              child: _StatCard(
+                icon: Icons.music_note_rounded,
+                value: '142',
+                label: _appLanguage.translate('songs'),
+              ),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _StatCard(
-              icon: Icons.playlist_play_rounded,
-              value: '23',
-              label: _appLanguage.translate('playlists'),
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Viewing all playlists...'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
+              child: _StatCard(
+                icon: Icons.playlist_play_rounded,
+                value: '23',
+                label: _appLanguage.translate('playlists'),
+              ),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _StatCard(
-              icon: Icons.favorite_rounded,
-              value: '89',
-              label: _appLanguage.translate('favorites'),
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Viewing all favorites...'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
+              child: _StatCard(
+                icon: Icons.favorite_rounded,
+                value: '89',
+                label: _appLanguage.translate('favorites'),
+              ),
             ),
           ),
         ],
@@ -442,7 +699,10 @@ class _SettingsSectionState extends State<_SettingsSection> {
               title: _appLanguage.translate('help_support'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () {
-                _showHelpDialog(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                );
               },
             ),
             const Divider(height: 1),
@@ -509,70 +769,6 @@ class _SettingItem extends StatelessWidget {
 }
 
 // Dialog Functions
-void _showEditProfileDialog(BuildContext context) {
-  final AppLanguage appLanguage = AppLanguage();
-  final nameController = TextEditingController(text: 'Alex Johnson');
-  final emailController = TextEditingController(text: 'alex.johnson@email.com');
-
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        appLanguage.translate('edit_profile'),
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              labelText: appLanguage.translate('name'),
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: emailController,
-            decoration: InputDecoration(
-              labelText: appLanguage.translate('email'),
-              prefixIcon: const Icon(Icons.email_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(appLanguage.translate('cancel')),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(appLanguage.translate('profile_updated'))),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Text(appLanguage.translate('save')),
-        ),
-      ],
-    ),
-  );
-}
-
 void _showDataUsageDialog(BuildContext context) {
   final AppLanguage appLanguage = AppLanguage();
   showDialog(
@@ -722,35 +918,6 @@ void _showLanguageDialog(BuildContext context, Function() onLanguageChanged) {
   );
 }
 
-void _showHelpDialog(BuildContext context) {
-  final AppLanguage appLanguage = AppLanguage();
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        appLanguage.translate('help_support'),
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _HelpItem(Icons.question_answer_rounded, appLanguage.translate('faq')),
-          _HelpItem(Icons.email_rounded, appLanguage.translate('contact_support')),
-          _HelpItem(Icons.bug_report_rounded, appLanguage.translate('report_bug')),
-          _HelpItem(Icons.feedback_rounded, appLanguage.translate('send_feedback')),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(appLanguage.translate('close')),
-        ),
-      ],
-    ),
-  );
-}
-
 void _showAboutDialog(BuildContext context) {
   final AppLanguage appLanguage = AppLanguage();
   showDialog(
@@ -877,25 +1044,3 @@ class _DataUsageItem extends StatelessWidget {
   }
 }
 
-class _HelpItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-
-  const _HelpItem(this.icon, this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLanguage appLanguage = AppLanguage();
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
-      title: Text(title),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${appLanguage.translate('opening')} $title...')),
-        );
-      },
-    );
-  }
-}
