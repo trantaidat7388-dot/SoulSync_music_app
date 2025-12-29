@@ -10,8 +10,12 @@ class AppColors {
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF2C241E);
   
+  static const Color cardDark = Color(0xFF3A2F26); // Dark card background
+  
   static const Color textMain = Color(0xFF2D241E);
   static const Color textMuted = Color(0xFF8C837B);
+  static const Color textMainDark = Color(0xFFF5F1ED); // Light text for dark mode
+  static const Color textMutedDark = Color(0xFFB8AFA5); // Muted text for dark mode
 
   // Legacy accents
   static const Color accentBlue = Color(0xFFB8CBE3);

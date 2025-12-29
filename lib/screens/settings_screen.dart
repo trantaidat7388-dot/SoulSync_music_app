@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
+import '../services/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = false;
   bool _notificationsEnabled = true;
   bool _autoDownload = false;
   String _audioQuality = 'High';
@@ -68,26 +69,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Appearance Section
                   _buildSectionTitle('Appearance'),
                   const SizedBox(height: 12),
-                  _buildSettingCard(
-                    icon: Icons.dark_mode_rounded,
-                    title: AppLanguage().translate('dark_mode'),
-                    subtitle: 'Toggle dark theme',
-                    trailing: Switch(
-                      value: _isDarkMode,
-                      onChanged: (value) {
-                        setState(() => _isDarkMode = value);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(_isDarkMode 
-                              ? '🌙 Dark mode will be available in next update!' 
-                              : '☀️ Light mode active'),
-                            duration: const Duration(seconds: 2),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                      },
-                      activeThumbColor: AppColors.primary,
-                    ),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      return _buildSettingCard(
+                        icon: Icons.dark_mode_rounded,
+                        title: AppLanguage().translate('dark_mode'),
+                        subtitle: 'Toggle dark theme',
+                        trailing: Switch(
+                          value: themeProvider.isDarkMode,
+                          onChanged: (value) async {
+                            await themeProvider.setTheme(value);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(themeProvider.isDarkMode 
+                                    ? '🌙 Dark mode activated!' 
+                                    : '☀️ Light mode active'),
+                                  duration: const Duration(seconds: 2),
+                                  backgroundColor: AppColors.primary,
+                                ),
+                              );
+                            }
+                          },
+                          activeThumbColor: AppColors.primary,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildSettingCard(
