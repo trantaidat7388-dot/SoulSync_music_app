@@ -253,12 +253,29 @@ class _SearchScreenState extends State<SearchScreen>
                         else if (_hasSearched && _searchResults.isNotEmpty)
                           _buildFilteredContent()
                         else
-                          FadeTransition(
-                            opacity: _fadeAnimations[3],
-                            child: SlideTransition(
-                              position: _slideAnimations[3],
-                              child: const _DiscoverSection(),
-                            ),
+                          Column(
+                            children: [
+                              FadeTransition(
+                                opacity: _fadeAnimations[3],
+                                child: SlideTransition(
+                                  position: _slideAnimations[3],
+                                  child: _SearchSuggestionsSection(
+                                    onSuggestionTap: (query) {
+                                      _searchController.text = query;
+                                      _onSearchChanged(query);
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              FadeTransition(
+                                opacity: _fadeAnimations[3],
+                                child: SlideTransition(
+                                  position: _slideAnimations[3],
+                                  child: const _DiscoverSection(),
+                                ),
+                              ),
+                            ],
                           ),
 
                         const SizedBox(height: 24),
@@ -820,6 +837,97 @@ class _SearchResultItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SearchSuggestionsSection extends StatelessWidget {
+  final Function(String) onSuggestionTap;
+
+  const _SearchSuggestionsSection({required this.onSuggestionTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final trendingSearches = [
+      {'icon': Icons.trending_up, 'text': 'Trending now'},
+      {'icon': Icons.star, 'text': 'Top hits 2024'},
+      {'icon': Icons.music_note, 'text': 'New releases'},
+      {'icon': Icons.favorite, 'text': 'Popular artists'},
+      {'icon': Icons.album, 'text': 'Viral playlists'},
+    ];
+
+    final popularSearches = [
+      'Ed Sheeran',
+      'Taylor Swift',
+      'The Weeknd',
+      'Billie Eilish',
+      'Drake',
+      'Ariana Grande',
+      'Post Malone',
+      'Dua Lipa',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Trending Searches
+        const Text(
+          'Trending Searches',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...trendingSearches.map((item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                item['icon'] as IconData,
+                color: AppColors.primary,
+                size: 24,
+              ),
+              title: Text(
+                item['text'] as String,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textMain,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => onSuggestionTap(item['text'] as String),
+            )),
+        const SizedBox(height: 24),
+        
+        // Popular Searches
+        const Text(
+          'Popular Artists',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: popularSearches.map((search) => ActionChip(
+            label: Text(search),
+            labelStyle: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+            backgroundColor: AppColors.cardBackground,
+            side: BorderSide(color: AppColors.divider.withOpacity(0.3)),
+            onPressed: () => onSuggestionTap(search),
+          )).toList(),
+        ),
+      ],
     );
   }
 }
