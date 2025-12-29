@@ -95,7 +95,14 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                         _isEnabled = value;
                       });
                     },
-                    activeThumbColor: AppColors.primary,
+                    thumbColor: WidgetStateProperty.resolveWith<Color>(
+                      (Set<WidgetState> states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppColors.primary;
+                        }
+                        return Colors.white;
+                      },
+                    ),
                   ),
                 ],
               ),

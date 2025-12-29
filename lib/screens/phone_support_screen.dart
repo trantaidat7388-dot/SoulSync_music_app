@@ -6,7 +6,6 @@ class PhoneSupportScreen extends StatelessWidget {
   const PhoneSupportScreen({super.key});
 
   final String _supportNumber = '+1 (800) 123-4567';
-  final String _supportNumberRaw = '18001234567';
 
   @override
   Widget build(BuildContext context) {

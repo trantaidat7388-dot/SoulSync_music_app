@@ -118,7 +118,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             }
                           },
-                          activeThumbColor: AppColors.primary,
+                          thumbColor: WidgetStateProperty.resolveWith<Color>(
+                            (Set<WidgetState> states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return AppColors.primary;
+                              }
+                              return Colors.white;
+                            },
+                          ),
                         ),
                       );
                     },
@@ -169,7 +176,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (value) {
                         setState(() => _autoDownload = value);
                       },
-                      activeThumbColor: AppColors.primary,
+                      thumbColor: WidgetStateProperty.resolveWith<Color>(
+                        (Set<WidgetState> states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return AppColors.primary;
+                          }
+                          return Colors.white;
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -198,7 +212,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() => _notificationsEnabled = value);
                         _saveNotificationSetting('notifications_enabled', value);
                       },
-                      activeThumbColor: AppColors.primary,
+                      thumbColor: WidgetStateProperty.resolveWith<Color>(
+                        (Set<WidgetState> states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return AppColors.primary;
+                          }
+                          return Colors.white;
+                        },
+                      ),
                     ),
                   ),
                   if (_notificationsEnabled) ...[
@@ -213,7 +234,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() => _newReleasesNotif = value);
                           _saveNotificationSetting('new_releases_notif', value);
                         },
-                        activeThumbColor: AppColors.primary,
+                        thumbColor: WidgetStateProperty.resolveWith<Color>(
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return AppColors.primary;
+                            }
+                            return Colors.white;
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -227,7 +255,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() => _playlistUpdatesNotif = value);
                           _saveNotificationSetting('playlist_updates_notif', value);
                         },
-                        activeThumbColor: AppColors.primary,
+                        thumbColor: WidgetStateProperty.resolveWith<Color>(
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return AppColors.primary;
+                            }
+                            return Colors.white;
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -241,7 +276,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() => _artistUpdatesNotif = value);
                           _saveNotificationSetting('artist_updates_notif', value);
                         },
-                        activeThumbColor: AppColors.primary,
+                        thumbColor: WidgetStateProperty.resolveWith<Color>(
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return AppColors.primary;
+                            }
+                            return Colors.white;
+                          },
+                        ),
                       ),
                     ),
                   ],
