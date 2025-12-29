@@ -77,16 +77,28 @@ class _DraggableChatBotState extends State<DraggableChatBot> with SingleTickerPr
         ),
         onDragEnd: (details) {
           setState(() {
-            // Calculate position from right and bottom
+            // Calculate position from drag
             final left = details.offset.dx;
             final top = details.offset.dy;
             
-            _right = screenSize.width - left - 64;
+            // Determine which side (left or right) based on horizontal position
+            final centerX = left + 32; // Half of button width (64/2)
+            final isLeftSide = centerX < screenSize.width / 2;
+            
+            // Calculate vertical position (can move up/down freely)
             _bottom = screenSize.height - top - 64 - bottomPadding;
             
-            // Constrain to screen bounds
-            _right = _right.clamp(16.0, screenSize.width - 80);
+            // Constrain vertical movement
             _bottom = _bottom.clamp(80.0, screenSize.height - 200);
+            
+            // Lock to either left or right edge
+            if (isLeftSide) {
+              // Lock to left edge
+              _right = screenSize.width - 80; // 16 padding + 64 button width
+            } else {
+              // Lock to right edge
+              _right = 16.0;
+            }
           });
           _savePosition();
         },

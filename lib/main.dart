@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,18 @@ import 'theme/colors.dart';
 import 'services/app_language.dart';
 import 'services/theme_provider.dart';
 
+// HTTP Override để bypass SSL certificate validation (chỉ dùng cho development)
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() {
+  // Áp dụng HTTP override để fix lỗi SSL certificate
+  HttpOverrides.global = MyHttpOverrides();
   runApp(const MyApp());
 }
 
