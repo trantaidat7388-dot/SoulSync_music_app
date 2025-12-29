@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import 'email_support_screen.dart';
+import 'live_chat_screen.dart';
+import 'phone_support_screen.dart';
+import 'help_center_screen.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -278,15 +282,9 @@ class _ContactTab extends StatelessWidget {
             title: 'Email Support',
             subtitle: 'support@soulsync.com',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Opening email client...'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EmailSupportScreen()),
               );
             },
           ),
@@ -296,15 +294,9 @@ class _ContactTab extends StatelessWidget {
             title: 'Live Chat',
             subtitle: 'Available 24/7',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Starting live chat...'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LiveChatScreen()),
               );
             },
           ),
@@ -314,15 +306,9 @@ class _ContactTab extends StatelessWidget {
             title: 'Phone Support',
             subtitle: '+1 (800) 123-4567',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Opening phone dialer...'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PhoneSupportScreen()),
               );
             },
           ),
@@ -332,15 +318,9 @@ class _ContactTab extends StatelessWidget {
             title: 'Help Center',
             subtitle: 'Visit our online help center',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Opening help center...'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
               );
             },
           ),

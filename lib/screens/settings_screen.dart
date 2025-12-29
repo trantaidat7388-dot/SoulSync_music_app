@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
 import '../services/theme_provider.dart';
@@ -13,8 +14,34 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
+  bool _newReleasesNotif = true;
+  bool _playlistUpdatesNotif = true;
+  bool _artistUpdatesNotif = true;
   bool _autoDownload = false;
   String _audioQuality = 'High';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _newReleasesNotif = prefs.getBool('new_releases_notif') ?? true;
+      _playlistUpdatesNotif = prefs.getBool('playlist_updates_notif') ?? true;
+      _artistUpdatesNotif = prefs.getBool('artist_updates_notif') ?? true;
+      _autoDownload = prefs.getBool('auto_download') ?? false;
+      _audioQuality = prefs.getString('audio_quality') ?? 'High';
+    });
+  }
+
+  Future<void> _saveNotificationSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -164,15 +191,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingCard(
                     icon: Icons.notifications_rounded,
                     title: 'Push Notifications',
-                    subtitle: 'New releases and recommendations',
+                    subtitle: 'Enable or disable all notifications',
                     trailing: Switch(
                       value: _notificationsEnabled,
                       onChanged: (value) {
                         setState(() => _notificationsEnabled = value);
+                        _saveNotificationSetting('notifications_enabled', value);
                       },
                       activeThumbColor: AppColors.primary,
                     ),
                   ),
+                  if (_notificationsEnabled) ...[
+                    const SizedBox(height: 12),
+                    _buildSettingCard(
+                      icon: Icons.new_releases_rounded,
+                      title: 'New Releases',
+                      subtitle: 'Notify about new music releases',
+                      trailing: Switch(
+                        value: _newReleasesNotif,
+                        onChanged: (value) {
+                          setState(() => _newReleasesNotif = value);
+                          _saveNotificationSetting('new_releases_notif', value);
+                        },
+                        activeThumbColor: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingCard(
+                      icon: Icons.playlist_play_rounded,
+                      title: 'Playlist Updates',
+                      subtitle: 'Notify about playlist changes',
+                      trailing: Switch(
+                        value: _playlistUpdatesNotif,
+                        onChanged: (value) {
+                          setState(() => _playlistUpdatesNotif = value);
+                          _saveNotificationSetting('playlist_updates_notif', value);
+                        },
+                        activeThumbColor: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingCard(
+                      icon: Icons.person_rounded,
+                      title: 'Artist Updates',
+                      subtitle: 'Notify about favorite artist activities',
+                      trailing: Switch(
+                        value: _artistUpdatesNotif,
+                        onChanged: (value) {
+                          setState(() => _artistUpdatesNotif = value);
+                          _saveNotificationSetting('artist_updates_notif', value);
+                        },
+                        activeThumbColor: AppColors.primary,
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 32),
 
@@ -182,8 +254,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingCard(
                     icon: Icons.info_rounded,
                     title: 'App Version',
-                    subtitle: '1.0.0',
+                    subtitle: '1.0.0 (Build 100)',
                     trailing: const SizedBox(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.code_rounded,
+                    title: 'Developer',
+                    subtitle: 'SoulSync Team © 2024',
+                    trailing: const SizedBox(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.update_rounded,
+                    title: 'Last Updated',
+                    subtitle: 'December 29, 2024',
+                    trailing: const SizedBox(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSettingCard(
+                    icon: Icons.library_books_rounded,
+                    title: 'Open Source Licenses',
+                    subtitle: 'View third-party licenses',
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      _showLicensesDialog();
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildSettingCard(
@@ -191,7 +287,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'Privacy Policy',
                     subtitle: 'Read our privacy policy',
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Opening Privacy Policy...')),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildSettingCard(
@@ -199,7 +299,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'Terms of Service',
                     subtitle: 'Read terms and conditions',
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Opening Terms of Service...')),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 32),
@@ -461,6 +565,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showLicensesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.backgroundLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Open Source Licenses',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: const [
+              _LicenseItem(name: 'Flutter', license: 'BSD 3-Clause'),
+              _LicenseItem(name: 'Provider', license: 'MIT'),
+              _LicenseItem(name: 'HTTP', license: 'BSD 3-Clause'),
+              _LicenseItem(name: 'Shared Preferences', license: 'BSD 3-Clause'),
+              _LicenseItem(name: 'Audio Players', license: 'MIT'),
+              _LicenseItem(name: 'Cached Network Image', license: 'MIT'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -481,6 +619,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text(
               'Logout',
               style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LicenseItem extends StatelessWidget {
+  final String name;
+  final String license;
+
+  const _LicenseItem({
+    required this.name,
+    required this.license,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            name,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMain,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              license,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

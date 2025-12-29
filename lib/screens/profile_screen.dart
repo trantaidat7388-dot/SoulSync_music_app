@@ -6,6 +6,9 @@ import 'downloads_screen.dart';
 import 'chat_bot_screen.dart';
 import 'help_support_screen.dart';
 import 'edit_profile_screen.dart';
+import 'my_songs_screen.dart';
+import 'my_playlists_screen.dart';
+import 'my_favorites_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -35,8 +38,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: isDark ? AppColors.background : AppColors.backgroundLight,
       body: Stack(
         children: [
           // Background Gradient
@@ -353,12 +357,13 @@ class _ProfileCardState extends State<_ProfileCard> {
   }
 
   Widget _buildChangeAvatarOption(IconData icon, String label, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.backgroundLight,
+          color: isDark ? AppColors.surface : AppColors.backgroundLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -390,69 +395,6 @@ class _ProfileCardState extends State<_ProfileCard> {
       ),
     );
   }
-
-  void _showEditProfileDialog(BuildContext context) {
-    final nameController = TextEditingController(text: 'Alex Johnson');
-    final emailController = TextEditingController(text: 'alex.johnson@email.com');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          _appLanguage.translate('edit_profile'),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: _appLanguage.translate('name'),
-                prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: _appLanguage.translate('email'),
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_appLanguage.translate('cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(_appLanguage.translate('profile_updated'))),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(_appLanguage.translate('save')),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _StatsSection extends StatefulWidget {
@@ -479,15 +421,9 @@ class _StatsSectionState extends State<_StatsSection> {
           Expanded(
             child: GestureDetector(
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Viewing all songs...'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MySongsScreen()),
                 );
               },
               child: _StatCard(
@@ -501,15 +437,9 @@ class _StatsSectionState extends State<_StatsSection> {
           Expanded(
             child: GestureDetector(
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Viewing all playlists...'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyPlaylistsScreen()),
                 );
               },
               child: _StatCard(
@@ -523,15 +453,9 @@ class _StatsSectionState extends State<_StatsSection> {
           Expanded(
             child: GestureDetector(
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Viewing all favorites...'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyFavoritesScreen()),
                 );
               },
               child: _StatCard(
