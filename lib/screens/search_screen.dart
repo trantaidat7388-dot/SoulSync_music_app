@@ -21,12 +21,14 @@ class _SearchScreenState extends State<SearchScreen>
 
   // Search functionality
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final DeezerService _deezerService = DeezerService();
   Timer? _debounce;
 
   List<Track> _searchResults = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+  bool _isSearchFocused = false;
   String _selectedFilter = 'All';
 
   // Grouped data for different filters
@@ -76,12 +78,20 @@ class _SearchScreenState extends State<SearchScreen>
 
     // Listen to search input changes
     _searchController.addListener(_onSearchChanged);
+    
+    // Listen to focus changes
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -220,6 +230,7 @@ class _SearchScreenState extends State<SearchScreen>
                             position: _slideAnimations[1],
                             child: _SearchBar(
                               controller: _searchController,
+                              focusNode: _searchFocusNode,
                               onClear: _clearSearch,
                             ),
                           ),
@@ -252,7 +263,22 @@ class _SearchScreenState extends State<SearchScreen>
                           const _EmptyState()
                         else if (_hasSearched && _searchResults.isNotEmpty)
                           _buildFilteredContent()
+                        else if (_isSearchFocused && _searchController.text.isEmpty)
+                          // Show suggestions when search bar is focused
+                          FadeTransition(
+                            opacity: _fadeAnimations[3],
+                            child: SlideTransition(
+                              position: _slideAnimations[3],
+                              child: _SearchSuggestionsSection(
+                                onSuggestionTap: (query) {
+                                  _searchController.text = query;
+                                  _onSearchChanged();
+                                },
+                              ),
+                            ),
+                          )
                         else
+                          // Show discover section when not focused
                           FadeTransition(
                             opacity: _fadeAnimations[3],
                             child: SlideTransition(
@@ -321,10 +347,12 @@ class _Header extends StatelessWidget {
 
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final VoidCallback onClear;
 
   const _SearchBar({
     required this.controller,
+    required this.focusNode,
     required this.onClear,
   });
 
@@ -356,6 +384,7 @@ class _SearchBar extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               decoration: InputDecoration(
                 hintText: 'Artists, Songs, Lyrics and more',
                 hintStyle: TextStyle(
@@ -820,6 +849,178 @@ class _SearchResultItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SearchSuggestionsSection extends StatelessWidget {
+  final Function(String) onSuggestionTap;
+
+  const _SearchSuggestionsSection({required this.onSuggestionTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final trendingSearches = [
+      {'icon': Icons.trending_up, 'text': 'Trending now'},
+      {'icon': Icons.star, 'text': 'Top hits 2024'},
+      {'icon': Icons.music_note, 'text': 'New releases'},
+      {'icon': Icons.favorite, 'text': 'Popular artists'},
+      {'icon': Icons.album, 'text': 'Viral playlists'},
+    ];
+
+    final popularSearches = [
+      'Ed Sheeran',
+      'Taylor Swift',
+      'The Weeknd',
+      'Billie Eilish',
+      'Drake',
+      'Ariana Grande',
+      'Post Malone',
+      'Dua Lipa',
+    ];
+
+    final suggestedSongs = [
+      {
+        'title': 'Shape of You',
+        'artist': 'Ed Sheeran',
+        'image': 'https://e-cdns-images.dzcdn.net/images/cover/2e018122cb56986277102d2041a592c8/250x250-000000-80-0-0.jpg',
+      },
+      {
+        'title': 'Blinding Lights',
+        'artist': 'The Weeknd',
+        'image': 'https://e-cdns-images.dzcdn.net/images/cover/ec3c8ed67427064c70f67e5815b74cef/250x250-000000-80-0-0.jpg',
+      },
+      {
+        'title': 'Levitating',
+        'artist': 'Dua Lipa',
+        'image': 'https://e-cdns-images.dzcdn.net/images/cover/d88a0cf591c6ab31b470882ee23fbb93/250x250-000000-80-0-0.jpg',
+      },
+      {
+        'title': 'As It Was',
+        'artist': 'Harry Styles',
+        'image': 'https://e-cdns-images.dzcdn.net/images/cover/7f3ce0d14e074e7e4bb315d8795b75a1/250x250-000000-80-0-0.jpg',
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Suggested Songs
+        const Text(
+          'Suggested Songs',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...suggestedSongs.map((song) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                leading: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(song['image'] as String),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  song['title'] as String,
+                  style: const TextStyle(
+                    color: AppColors.textMain,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  song['artist'] as String,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(
+                  Icons.play_circle_outline,
+                  color: AppColors.primary,
+                  size: 32,
+                ),
+                onTap: () => onSuggestionTap(song['title'] as String),
+              ),
+            )),
+        const SizedBox(height: 24),
+        
+        // Trending Searches
+        const Text(
+          'Trending Searches',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...trendingSearches.map((item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                item['icon'] as IconData,
+                color: AppColors.primary,
+                size: 24,
+              ),
+              title: Text(
+                item['text'] as String,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textMain,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => onSuggestionTap(item['text'] as String),
+            )),
+        const SizedBox(height: 24),
+        
+        // Popular Searches
+        const Text(
+          'Popular Artists',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: popularSearches.map((search) => ActionChip(
+            label: Text(search),
+            labelStyle: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+            backgroundColor: AppColors.cardBackground,
+            side: BorderSide(color: AppColors.divider.withOpacity(0.3)),
+            onPressed: () => onSuggestionTap(search),
+          )).toList(),
+        ),
+      ],
     );
   }
 }

@@ -37,6 +37,7 @@ dependencies:
   google_fonts: ^6.2.1
   http: ^1.2.0  # Để gọi API
   shared_preferences: ^2.2.2  # Lưu vị trí chatbot
+  provider: ^6.1.1  # State management cho dark mode
 
 dev_dependencies:
   flutter_test:

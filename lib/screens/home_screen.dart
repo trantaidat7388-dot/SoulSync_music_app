@@ -354,41 +354,134 @@ class _HeaderSection extends StatelessWidget {
 }
 
 // Notifications Bottom Sheet
-class _NotificationsSheet extends StatelessWidget {
+class _NotificationsSheet extends StatefulWidget {
   const _NotificationsSheet();
 
   @override
+  State<_NotificationsSheet> createState() => _NotificationsSheetState();
+}
+
+class _NotificationsSheetState extends State<_NotificationsSheet> {
+  List<Map<String, dynamic>> notifications = [
+    {
+      'title': 'New Release',
+      'message': 'The Weeknd just released a new album',
+      'time': '5m ago',
+      'icon': Icons.album_rounded,
+      'color': const Color(0xFF667EEA),
+      'isRead': false,
+    },
+    {
+      'title': 'Playlist Update',
+      'message': 'Discover Weekly is ready with fresh tracks',
+      'time': '1h ago',
+      'icon': Icons.playlist_play_rounded,
+      'color': const Color(0xFF43E97B),
+      'isRead': false,
+    },
+    {
+      'title': 'Friend Activity',
+      'message': 'Alex started following your playlist',
+      'time': '3h ago',
+      'icon': Icons.person_add_rounded,
+      'color': const Color(0xFFFA709A),
+      'isRead': true,
+    },
+    {
+      'title': 'Milestone',
+      'message': 'You\'ve listened to 100 songs this week!',
+      'time': '1d ago',
+      'icon': Icons.celebration_rounded,
+      'color': const Color(0xFFFEAC5E),
+      'isRead': true,
+    },
+  ];
+
+  void _markAllRead() {
+    setState(() {
+      for (var notif in notifications) {
+        notif['isRead'] = true;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('✓ All notifications marked as read'),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showNotificationDetail(Map<String, dynamic> notif) {
+    setState(() {
+      notif['isRead'] = true;
+    });
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: (notif['color'] as Color).withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                notif['icon'] as IconData,
+                color: notif['color'] as Color,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                notif['title'] as String,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              notif['message'] as String,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              notif['time'] as String,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textMuted.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final notifications = [
-      {
-        'title': 'New Release',
-        'message': 'The Weeknd just released a new album',
-        'time': '5m ago',
-        'icon': Icons.album_rounded,
-        'color': const Color(0xFF667EEA),
-      },
-      {
-        'title': 'Playlist Update',
-        'message': 'Discover Weekly is ready with fresh tracks',
-        'time': '1h ago',
-        'icon': Icons.playlist_play_rounded,
-        'color': const Color(0xFF43E97B),
-      },
-      {
-        'title': 'Friend Activity',
-        'message': 'Alex started following your playlist',
-        'time': '3h ago',
-        'icon': Icons.person_add_rounded,
-        'color': const Color(0xFFFA709A),
-      },
-      {
-        'title': 'Milestone',
-        'message': 'You\'ve listened to 100 songs this week!',
-        'time': '1d ago',
-        'icon': Icons.celebration_rounded,
-        'color': const Color(0xFFFEAC5E),
-      },
-    ];
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
@@ -423,7 +516,7 @@ class _NotificationsSheet extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: _markAllRead,
                   child: const Text(
                     'Mark all read',
                     style: TextStyle(
@@ -444,8 +537,12 @@ class _NotificationsSheet extends StatelessWidget {
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final notif = notifications[index];
+                final isRead = notif['isRead'] as bool;
+                
                 return ListTile(
+                  onTap: () => _showNotificationDetail(notif),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  tileColor: isRead ? Colors.transparent : AppColors.primary.withOpacity(0.05),
                   leading: Container(
                     width: 48,
                     height: 48,
@@ -459,13 +556,28 @@ class _NotificationsSheet extends StatelessWidget {
                       size: 24,
                     ),
                   ),
-                  title: Text(
-                    notif['title'] as String,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textMain,
-                    ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notif['title'] as String,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isRead ? FontWeight.w600 : FontWeight.w700,
+                            color: AppColors.textMain,
+                          ),
+                        ),
+                      ),
+                      if (!isRead)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
