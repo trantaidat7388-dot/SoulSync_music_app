@@ -7,6 +7,7 @@ import 'home_screen.dart';
 import 'search_screen.dart';
 import 'library_screen.dart';
 import 'profile_screen.dart';
+import 'camera_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -24,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
     SearchScreen(),
     LibraryScreen(),
     ProfileScreen(),
+    CameraScreen(),
   ];
 
   @override
