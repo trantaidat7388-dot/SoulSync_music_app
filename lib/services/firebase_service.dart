@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -56,33 +58,50 @@ class FirebaseService extends ChangeNotifier {
     required String password,
   }) async {
     try {
+      debugPrint('🔵 Bắt đầu đăng ký với email: $email');
+      
       // Create user in Firebase Auth
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
       
+      debugPrint('✅ Tạo user thành công: ${credential.user?.uid}');
+      
       // Update display name
       await credential.user?.updateDisplayName(name);
-      
-      // Create user profile in Firestore
-      await _firestore.collection('users').doc(credential.user!.uid).set({
-        'uid': credential.user!.uid,
-        'name': name,
-        'email': email,
-        'photoUrl': null,
-        'bio': '',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'favoriteGenres': [],
-        'followingArtists': [],
-        'playlists': [],
-        'favorites': [],
-        'recentlyPlayed': [],
-      });
-      
+      debugPrint('✅ Cập nhật tên thành công');
+
+      // Create user profile in Firestore (best-effort, chạy nền + timeout để tránh treo UI)
+      final uid = credential.user?.uid;
+      if (uid != null) {
+        unawaited(
+          _firestore
+              .collection('users')
+              .doc(uid)
+              .set({
+                'uid': uid,
+                'name': name,
+                'email': email,
+                'photoUrl': null,
+                'bio': '',
+                'createdAt': FieldValue.serverTimestamp(),
+                'updatedAt': FieldValue.serverTimestamp(),
+                'favoriteGenres': [],
+                'followingArtists': [],
+                'playlists': [],
+                'favorites': [],
+                'recentlyPlayed': [],
+              })
+              .timeout(const Duration(seconds: 5))
+              .then((_) => debugPrint('✅ Lưu profile Firestore thành công'))
+              .catchError((e) => debugPrint('⚠️ Không lưu được profile Firestore (bỏ qua): $e')),
+        );
+      }
+
       return null; // Success
     } on FirebaseAuthException catch (e) {
+      debugPrint('❌ FirebaseAuthException: ${e.code} - ${e.message}');
       switch (e.code) {
         case 'weak-password':
           return 'Mật khẩu quá yếu (tối thiểu 6 ký tự)';
@@ -94,6 +113,7 @@ class FirebaseService extends ChangeNotifier {
           return 'Lỗi: ${e.message}';
       }
     } catch (e) {
+      debugPrint('❌ Lỗi không xác định: $e');
       return 'Đã xảy ra lỗi: $e';
     }
   }
