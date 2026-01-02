@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../services/firebase_service.dart';
-import 'main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -70,79 +69,79 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
 
       print('🔵 Bắt đầu đăng ký...');
       setState(() => _isLoading = true);
-      
+
       final firebaseService = Provider.of<FirebaseService>(context, listen: false);
-      
-      print('🔵 Gọi registerWithEmail...');
-      final error = await firebaseService.registerWithEmail(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      
-      print('🔵 Kết quả: ${error ?? "Thành công"}');
-      
-      if (!mounted) {
-        print('⚠️ Widget đã unmounted');
-        return;
-      }
-      
-      if (error == null) {
-        print('🟢 Đăng ký thành công, đang logout...');
-        // Registration successful - logout and go back to login
-        await firebaseService.logout();
-        
+
+      try {
+        print('🔵 Gọi registerWithEmail...');
+        final error = await firebaseService.registerWithEmail(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        print('🔵 Kết quả: ${error ?? "Thành công"}');
+
         if (!mounted) {
-          print('⚠️ Widget đã unmounted sau logout');
+          print('⚠️ Widget đã unmounted');
           return;
         }
-        
-        print('🟢 Dừng loading...');
-        // Stop loading before navigation
-        setState(() => _isLoading = false);
-        
-        print('🟢 Hiển thị thông báo...');
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('🎉 Đăng ký thành công! Vui lòng đăng nhập.'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+
+        if (error == null) {
+          print('🟢 Đăng ký thành công!');
+
+          // Không await sign out để tránh treo UI trên Windows
+          firebaseService.logout();
+
+          if (!mounted) return;
+
+          // Navigate to login
+          Navigator.pushReplacementNamed(context, '/login');
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('🎉 Đăng ký thành công! Vui lòng đăng nhập.'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
-        
-        print('🟢 Đợi 500ms...');
-        // Small delay to show the snackbar
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (!mounted) {
-          print('⚠️ Widget đã unmounted trước navigation');
-          return;
+          );
+        } else {
+          print('🔴 Lỗi: $error');
+          // Show error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
         }
-        
-        print('🟢 Chuyển về màn hình login...');
-        // Navigate back to login screen
-        Navigator.pushReplacementNamed(context, '/login');
-        print('✅ Hoàn thành!');
-      } else {
-        print('🔴 Lỗi: $error');
-        // Show error and stop loading
-        setState(() => _isLoading = false);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+      } catch (e, st) {
+        debugPrint('❌ Exception khi đăng ký: $e\n$st');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Đã xảy ra lỗi, vui lòng thử lại'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }

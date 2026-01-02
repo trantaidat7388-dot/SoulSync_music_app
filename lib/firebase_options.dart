@@ -36,12 +36,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCmg1TLxK8yVFzL2VZlISkdZ1cvnpFZLIE',
+    appId: '1:875330860614:web:18b1b29308330c3524fc47',
+    messagingSenderId: '875330860614',
+    projectId: 'soulsync-music-app',
+    authDomain: 'soulsync-music-app.firebaseapp.com',
+    storageBucket: 'soulsync-music-app.firebasestorage.app',
+    measurementId: 'G-BW6NEY3HNF',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
