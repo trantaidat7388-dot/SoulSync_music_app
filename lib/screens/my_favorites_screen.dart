@@ -139,7 +139,7 @@ class _MyFavoritesScreenState extends State<MyFavoritesScreen>
 
   Widget _buildSongsTab() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 70),
       physics: const BouncingScrollPhysics(),
       itemCount: _favoriteSongs.length,
       itemBuilder: (context, index) {
@@ -207,7 +207,7 @@ class _MyFavoritesScreenState extends State<MyFavoritesScreen>
 
   Widget _buildArtistsTab() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
       physics: const BouncingScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -273,7 +273,7 @@ class _MyFavoritesScreenState extends State<MyFavoritesScreen>
 
   Widget _buildAlbumsTab() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
       physics: const BouncingScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

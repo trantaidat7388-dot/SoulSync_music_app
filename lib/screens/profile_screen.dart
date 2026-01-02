@@ -67,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 70),
               child: Column(
                 children: [
                   const _Header(),

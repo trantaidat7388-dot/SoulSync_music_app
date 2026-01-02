@@ -5,12 +5,15 @@ import 'queue_screen.dart';
 import 'equalizer_screen.dart';
 import 'audio_visualizer_screen.dart';
 import '../widgets/share_widgets.dart';
+import '../services/audio_player_service.dart';
+import '../models/music_models.dart';
 
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final player = AudioPlayerService.instance;
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
@@ -51,7 +54,7 @@ class NowPlayingScreen extends StatelessWidget {
                           SizedBox(height: 24),
                           _TrackInfo(),
                           SizedBox(height: 32),
-                          _ProgressBar(),
+                          _ReactiveProgressBar(),
                           SizedBox(height: 40),
                           _PlaybackControls(),
                           SizedBox(height: 40),
@@ -260,6 +263,7 @@ class _TrackInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final player = AudioPlayerService.instance;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -267,26 +271,38 @@ class _TrackInfo extends StatelessWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Sunsets & Chill',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMain,
-                  height: 1.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            children: [
+              StreamBuilder<Track?>(
+                stream: player.trackStream,
+                builder: (context, snapshot) {
+                  final title = snapshot.data?.name ?? 'No track';
+                  return Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
               ),
-              SizedBox(height: 4),
-              Text(
-                'Lo-Fi Beats',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
-                ),
+              const SizedBox(height: 4),
+              StreamBuilder<Track?>(
+                stream: player.trackStream,
+                builder: (context, snapshot) {
+                  final artist = snapshot.data?.artistName ?? '';
+                  return Text(
+                    artist,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -297,6 +313,36 @@ class _TrackInfo extends StatelessWidget {
           color: AppColors.textMuted,
         ),
       ],
+    );
+  }
+}
+
+class _ReactiveProgressBar extends StatelessWidget {
+  const _ReactiveProgressBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final player = AudioPlayerService.instance;
+    return StreamBuilder<double>(
+      stream: player.progressStream,
+      builder: (context, snapshot) {
+        final pct = snapshot.data ?? 0.0;
+        return Column(
+          children: [
+            Slider(
+              value: pct.clamp(0.0, 1.0),
+              onChanged: (_) {},
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text('0:00', style: TextStyle(color: AppColors.textMuted)),
+                Text('3:08', style: TextStyle(color: AppColors.textMuted)),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

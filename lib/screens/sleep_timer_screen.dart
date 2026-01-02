@@ -148,6 +148,7 @@ class _SleepTimerScreenState extends State<SleepTimerScreen>
 
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 70),
                 child: Column(
                   children: [
                     const SizedBox(height: 20),

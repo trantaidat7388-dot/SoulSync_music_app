@@ -243,7 +243,7 @@ class _MoodDetailScreenState extends State<MoodDetailScreen> {
             ),
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 70)),
         ],
       ),
     );

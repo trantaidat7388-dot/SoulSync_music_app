@@ -110,6 +110,7 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
 
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 70),
                 child: Column(
                   children: [
                     // Presets

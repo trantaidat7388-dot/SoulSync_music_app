@@ -354,7 +354,7 @@ class _GenreDetailScreenState extends State<GenreDetailScreen>
                           );
                         },
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 70),
                     ],
                   ),
                 ),

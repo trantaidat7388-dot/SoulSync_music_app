@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Music files - too large for GitHub
+MusicPlayer_Project/songs/
+*.mp3
+*.webm
+*.wav
+*.flac

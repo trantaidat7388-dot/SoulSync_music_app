@@ -130,12 +130,16 @@ class PlaylistDetailScreen extends StatelessWidget {
             return _buildPlayControls();
           }
           
+          if (index == songs.length + 1) {
+            return const SizedBox(height: 70);
+          }
+          
           final songIndex = index - 1;
           final song = songs[songIndex];
           
           return _buildSongTile(song, songIndex + 1);
         },
-        childCount: songs.length + 1,
+        childCount: songs.length + 2,
       ),
     );
   }
