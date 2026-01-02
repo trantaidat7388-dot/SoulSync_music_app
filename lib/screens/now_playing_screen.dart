@@ -13,7 +13,7 @@ class NowPlayingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final player = AudioPlayerService.instance;
+    // final player = AudioPlayerService.instance;
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
