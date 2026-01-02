@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
+import '../services/firebase_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,6 +14,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isEmailSent = false;
+  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -51,11 +54,47 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
     super.dispose();
   }
 
-  void _handleResetPassword() {
+  void _handleResetPassword() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isEmailSent = true;
-      });
+      setState(() => _isLoading = true);
+      
+      final firebaseService = Provider.of<FirebaseService>(context, listen: false);
+      
+      final error = await firebaseService.resetPassword(_emailController.text.trim());
+      
+      setState(() => _isLoading = false);
+      
+      if (error == null) {
+        // Email sent successfully
+        setState(() => _isEmailSent = true);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('📧 Email đặt lại mật khẩu đã được gửi!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Show error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -221,7 +260,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _handleResetPassword,
+                      onPressed: _isLoading ? null : _handleResetPassword,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -229,14 +268,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
+                        disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
                       ),
-                      child: const Text(
-                        'Send Reset Link',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              'Send Reset Link',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),

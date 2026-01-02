@@ -2,11 +2,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/main_screen.dart';
 import 'theme/colors.dart';
 import 'services/app_language.dart';
 import 'services/theme_provider.dart';
 import 'services/audio_player_service.dart';
+import 'services/firebase_service.dart';
 
 // HTTP Override để bypass SSL certificate validation (chỉ dùng cho development)
 class MyHttpOverrides extends HttpOverrides {
@@ -21,6 +27,11 @@ void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   // Initialize audio player service
   await AudioPlayerService.instance.init();
   
@@ -34,8 +45,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => FirebaseService()),
+      ],
       child: const MyAppContent(),
     );
   }
@@ -97,7 +111,14 @@ class _MyAppContentState extends State<MyAppContent> {
         textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
         cardColor: AppColors.cardDark,
       ),
-      home: const OnboardingScreen(),
+      // Define named routes
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const OnboardingScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/main': (context) => const MainScreen(),
+      },
     );
   }
 }

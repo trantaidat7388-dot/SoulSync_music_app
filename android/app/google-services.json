@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "875330860614",
+    "project_id": "soulsync-music-app",
+    "storage_bucket": "soulsync-music-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875330860614:android:4401004b7f7adcb524fc47",
+        "android_client_info": {
+          "package_name": "com.example.music_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANJSrMK4n0R2WqlsazvwJ0gk-czEPQllY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

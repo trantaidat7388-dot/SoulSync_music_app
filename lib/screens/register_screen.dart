@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
+import '../services/firebase_service.dart';
 import 'main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
+  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -49,23 +52,98 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       if (!_acceptTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please accept Terms & Conditions'),
+          SnackBar(
+            content: const Text('Vui lòng chấp nhận Điều khoản & Điều kiện'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         return;
       }
 
-      // Simulate registration
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+      print('🔵 Bắt đầu đăng ký...');
+      setState(() => _isLoading = true);
+      
+      final firebaseService = Provider.of<FirebaseService>(context, listen: false);
+      
+      print('🔵 Gọi registerWithEmail...');
+      final error = await firebaseService.registerWithEmail(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+      
+      print('🔵 Kết quả: ${error ?? "Thành công"}');
+      
+      if (!mounted) {
+        print('⚠️ Widget đã unmounted');
+        return;
+      }
+      
+      if (error == null) {
+        print('🟢 Đăng ký thành công, đang logout...');
+        // Registration successful - logout and go back to login
+        await firebaseService.logout();
+        
+        if (!mounted) {
+          print('⚠️ Widget đã unmounted sau logout');
+          return;
+        }
+        
+        print('🟢 Dừng loading...');
+        // Stop loading before navigation
+        setState(() => _isLoading = false);
+        
+        print('🟢 Hiển thị thông báo...');
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('🎉 Đăng ký thành công! Vui lòng đăng nhập.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        
+        print('🟢 Đợi 500ms...');
+        // Small delay to show the snackbar
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (!mounted) {
+          print('⚠️ Widget đã unmounted trước navigation');
+          return;
+        }
+        
+        print('🟢 Chuyển về màn hình login...');
+        // Navigate back to login screen
+        Navigator.pushReplacementNamed(context, '/login');
+        print('✅ Hoàn thành!');
+      } else {
+        print('🔴 Lỗi: $error');
+        // Show error and stop loading
+        setState(() => _isLoading = false);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -416,7 +494,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _handleRegister,
+                      onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -424,14 +502,24 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
+                        disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
                       ),
-                      child: const Text(
-                        'Sign Up',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),
