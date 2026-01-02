@@ -10,7 +10,6 @@ import 'playlist_detail_screen.dart';
 import 'all_genres_screen.dart';
 import 'all_moods_screen.dart';
 import 'all_artists_screen.dart';
-import 'friends_activity_screen.dart';
 import 'mood_detail_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';

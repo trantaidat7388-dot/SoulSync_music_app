@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../theme/colors.dart';
 import '../services/deezer_service.dart';
+import '../services/audio_player_service.dart';
 import '../models/music_models.dart';
 import 'now_playing_screen.dart';
 import 'artist_detail_screen.dart';
@@ -220,7 +221,7 @@ class _SearchScreenState extends State<SearchScreen>
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.only(left: 24, right: 24, bottom: 70),
                     child: Column(
                       children: [
                         const SizedBox(height: 8),
@@ -697,13 +698,21 @@ class _SearchResultItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const NowPlayingScreen(),
-          ),
-        );
+      onTap: () async {
+        // Phát nhạc ngay khi tap
+        final player = AudioPlayerService.instance;
+        await player.setTrack(track);
+        await player.play();
+        
+        // Navigate đến Now Playing
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NowPlayingScreen(),
+            ),
+          );
+        }
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(

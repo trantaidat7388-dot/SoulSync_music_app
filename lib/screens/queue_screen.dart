@@ -194,7 +194,7 @@ class _QueueScreenState extends State<QueueScreen> {
             // Reorderable Queue List
             Expanded(
               child: ReorderableListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 70),
                 itemCount: _queue.length,
                 onReorder: (oldIndex, newIndex) {
                   setState(() {

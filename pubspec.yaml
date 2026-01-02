@@ -38,6 +38,10 @@ dependencies:
   http: ^1.2.0  # Để gọi API
   shared_preferences: ^2.2.2  # Lưu vị trí chatbot
   provider: ^6.1.1  # State management cho dark mode
+  just_audio: ^0.9.36  # Phát nhạc
+  audio_session: ^0.1.18  # Cấu hình audio session
+  dio: ^5.6.0  # Download file
+  path_provider: ^2.1.3  # Thư mục lưu trữ
 
 dev_dependencies:
   flutter_test:

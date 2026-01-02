@@ -114,7 +114,7 @@ class ArtistDetailScreen extends StatelessWidget {
         _buildPopularSection(),
         const SizedBox(height: 24),
         _buildAlbumsSection(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 70),
       ]),
     );
   }

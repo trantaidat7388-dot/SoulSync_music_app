@@ -6,6 +6,7 @@ import 'screens/onboarding_screen.dart';
 import 'theme/colors.dart';
 import 'services/app_language.dart';
 import 'services/theme_provider.dart';
+import 'services/audio_player_service.dart';
 
 // HTTP Override để bypass SSL certificate validation (chỉ dùng cho development)
 class MyHttpOverrides extends HttpOverrides {
@@ -16,7 +17,13 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+void main() async {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize audio player service
+  await AudioPlayerService.instance.init();
+  
   // Áp dụng HTTP override để fix lỗi SSL certificate
   HttpOverrides.global = MyHttpOverrides();
   runApp(const MyApp());

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../screens/now_playing_screen.dart';
+import '../services/audio_player_service.dart';
+import '../models/music_models.dart';
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -20,6 +22,8 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    // Ensure audio session is configured
+    AudioPlayerService.instance.init();
   }
 
   @override
@@ -30,6 +34,7 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final player = AudioPlayerService.instance;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Material(
@@ -96,9 +101,16 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(14),
-                              child: Image.network(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuD9fxCh6ix0aWLgour1YPDsqEAdkSI_q85A_PQ-r-IpV15bFAnCSroUA2hJvtpfEecrMtv6AED61ldXvgn4uH-IiRnElltY4h_YrxbBlPx3BnrGwXGEC9aE1okxT9imLOMmawLxC-IYRS_ABtMvc3IXv7FwqF2kmLHHLjcq9SxUET6r8oSBK48CJcInyPnZPeWVO9owgW3QrGXXfzWiJtRErdJyzR2cQ_vRGO1JqxYeoT2y70dxJyRIhCrL-u-OB3Ed4A9wPIaxQw',
-                                fit: BoxFit.cover,
+                              child: StreamBuilder<Track?>(
+                                stream: player.trackStream,
+                                builder: (context, snapshot) {
+                                  final imageUrl = snapshot.data?.imageUrl ??
+                                      'https://via.placeholder.com/120x120.png?text=Music';
+                                  return Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -111,37 +123,49 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Sunsets & Chill',
-                                style: TextStyle(
+                              StreamBuilder<Track?>(
+                                stream: player.trackStream,
+                                builder: (context, snapshot) {
+                                  final title = snapshot.data?.name ?? 'No track';
+                                  return Text(
+                                    title,
+                                    style: const TextStyle(
                                   fontSize: 15.5,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textMain,
                                   letterSpacing: -0.3,
                                   height: 1.2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                },
                               ),
                               const SizedBox(height: 5),
                               Row(
-                                children: const [
-                                  Icon(
+                                children: [
+                                  const Icon(
                                     Icons.music_note_rounded,
                                     size: 13,
                                     color: AppColors.textMuted,
                                   ),
                                   SizedBox(width: 4),
                                   Expanded(
-                                    child: Text(
-                                      'Lo-Fi Beats',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.textMuted,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: StreamBuilder<Track?>(
+                                      stream: player.trackStream,
+                                      builder: (context, snapshot) {
+                                        final subtitle = snapshot.data?.artistName ?? 'Choose a song';
+                                        return Text(
+                                          subtitle,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
@@ -191,12 +215,25 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () {},
+                              onTap: () async {
+                                final playing = player.isPlaying;
+                                if (playing) {
+                                  await player.pause();
+                                } else {
+                                  await player.play();
+                                }
+                              },
                               borderRadius: BorderRadius.circular(14),
-                              child: const Icon(
-                                Icons.pause_rounded,
-                                color: Colors.white,
-                                size: 28,
+                              child: StreamBuilder<bool>(
+                                stream: player.playingStream,
+                                builder: (context, snapshot) {
+                                  final playing = snapshot.data ?? false;
+                                  return Icon(
+                                    playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -207,34 +244,40 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
                 ),
                 
                 // Progress Bar
-                Container(
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: 0.35,
-                    child: Container(
+                StreamBuilder<double>(
+                  stream: player.progressStream,
+                  builder: (context, snapshot) {
+                    final pct = snapshot.data ?? 0.0;
+                    return Container(
+                      height: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.secondary,
-                          ],
-                        ),
+                        color: AppColors.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 4,
-                          ),
-                        ],
                       ),
-                    ),
-                  ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: pct.clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primary,
+                                AppColors.secondary,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.3),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
               ],
