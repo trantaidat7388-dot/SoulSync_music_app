@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
@@ -150,6 +153,9 @@ class _ProfileCard extends StatefulWidget {
 
 class _ProfileCardState extends State<_ProfileCard> {
   final AppLanguage _appLanguage = AppLanguage();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -186,7 +192,7 @@ class _ProfileCardState extends State<_ProfileCard> {
               children: [
                 // Avatar
                 GestureDetector(
-                  onTap: () => _showChangeAvatarSheet(context),
+                  onTap: _isUploadingAvatar ? null : () => _showChangeAvatarSheet(context),
                   child: Stack(
                     children: [
                       Container(
@@ -214,6 +220,25 @@ class _ProfileCardState extends State<_ProfileCard> {
                               : _buildDefaultAvatar(firebaseService.userName),
                         ),
                       ),
+                          if (_isUploadingAvatar)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.45),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: SizedBox(
+                                    height: 28,
+                                    width: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                       Positioned(
                         bottom: 0,
                         right: 0,
@@ -417,91 +442,132 @@ class _ProfileCardState extends State<_ProfileCard> {
     );
   }
 
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    if (_isUploadingAvatar) return;
+
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 900,
+        maxHeight: 900,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() => _isUploadingAvatar = true);
+      final Uint8List bytes = await pickedFile.readAsBytes();
+      final firebaseService = context.read<FirebaseService>();
+      final error = await firebaseService.uploadAvatar(bytes);
+
+      if (!mounted) return;
+      if (error != null) {
+        _showSnack(context, error, isError: true);
+      } else {
+        _showSnack(context, 'Ảnh đại diện đã được cập nhật');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnack(context, 'Không thể cập nhật ảnh: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
+    }
+  }
+
+  Future<void> _removeAvatar(BuildContext context) async {
+    if (_isUploadingAvatar) return;
+
+    setState(() => _isUploadingAvatar = true);
+
+    try {
+      final firebaseService = context.read<FirebaseService>();
+      final error = await firebaseService.removeAvatar();
+
+      if (!mounted) return;
+      if (error != null) {
+        _showSnack(context, error, isError: true);
+      } else {
+        _showSnack(context, 'Đã xoá ảnh đại diện');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnack(context, 'Không thể xoá ảnh: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
+    }
+  }
+
   void _showChangeAvatarSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Change Profile Picture',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
+              const SizedBox(height: 24),
+              const Text(
+                'Change Profile Picture',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMain,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildChangeAvatarOption(
-              Icons.camera_alt_rounded,
-              'Take Photo',
-              () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Camera feature coming soon!'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildChangeAvatarOption(
-              Icons.photo_library_rounded,
-              'Choose from Gallery',
-              () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Gallery feature coming soon!'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildChangeAvatarOption(
-              Icons.delete_outline_rounded,
-              'Remove Photo',
-              () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Photo removed!'),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+              _buildChangeAvatarOption(
+                Icons.camera_alt_rounded,
+                'Take Photo',
+                () {
+                  Navigator.pop(sheetContext);
+                  _pickAndUploadAvatar(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildChangeAvatarOption(
+                Icons.photo_library_rounded,
+                'Choose from Gallery',
+                () {
+                  Navigator.pop(sheetContext);
+                  _pickAndUploadAvatar(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildChangeAvatarOption(
+                Icons.delete_outline_rounded,
+                'Remove Photo',
+                () {
+                  Navigator.pop(sheetContext);
+                  _removeAvatar(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -543,6 +609,19 @@ class _ProfileCardState extends State<_ProfileCard> {
         );
       }
     }
+  }
+
+  void _showSnack(BuildContext context, String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
   }
 
   Widget _buildChangeAvatarOption(IconData icon, String label, VoidCallback onTap) {
