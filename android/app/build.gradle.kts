@@ -42,6 +42,15 @@ android {
     }
 }
 
+// Rename generated APKs to include app name, build type, and version.
+val appName = "SoulSync"
+android.applicationVariants.all {
+    outputs.all {
+        val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+        outputImpl.outputFileName = "${appName}-${name}-${versionName}.apk"
+    }
+}
+
 flutter {
     source = "../.."
 }

@@ -41,7 +41,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '875330860614',
     projectId: 'soulsync-music-app',
     authDomain: 'soulsync-music-app.firebaseapp.com',
-    storageBucket: 'soulsync-music-app.firebasestorage.app',
+    // Firebase Storage bucket names are typically "<projectId>.appspot.com".
+    storageBucket: 'soulsync-music-app.appspot.com',
     measurementId: 'G-BW6NEY3HNF',
   );
 
@@ -50,7 +51,7 @@ class DefaultFirebaseOptions {
     appId: '1:875330860614:android:4401004b7f7adcb524fc47',
     messagingSenderId: '875330860614',
     projectId: 'soulsync-music-app',
-    storageBucket: 'soulsync-music-app.firebasestorage.app',
+    storageBucket: 'soulsync-music-app.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -58,7 +59,7 @@ class DefaultFirebaseOptions {
     appId: 'YOUR_IOS_APP_ID',
     messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
     projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    storageBucket: 'soulsync-music-app.appspot.com',
     iosBundleId: 'com.example.musicApp',
   );
 
@@ -67,7 +68,7 @@ class DefaultFirebaseOptions {
     appId: 'YOUR_MACOS_APP_ID',
     messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
     projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    storageBucket: 'soulsync-music-app.appspot.com',
     iosBundleId: 'com.example.musicApp',
   );
 
@@ -77,7 +78,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '875330860614',
     projectId: 'soulsync-music-app',
     authDomain: 'soulsync-music-app.firebaseapp.com',
-    storageBucket: 'soulsync-music-app.firebasestorage.app',
+    storageBucket: 'soulsync-music-app.appspot.com',
     measurementId: 'G-BW6NEY3HNF',
   );
 

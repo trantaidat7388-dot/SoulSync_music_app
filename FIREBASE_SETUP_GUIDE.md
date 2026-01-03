@@ -34,6 +34,20 @@
 3. Chọn region: **asia-southeast1** (Singapore - gần VN)
 4. Click **Enable**
 
+### Bước 3.1: Cấu hình Firestore Security Rules (bắt buộc)
+Lỗi phổ biến khi chạy app:
+`[cloud_firestore/permission-denied] Missing or insufficient permissions.`
+
+App đang đọc/ghi profile theo đường dẫn `users/{uid}` (uid là `request.auth.uid`).
+Repo đã có sẵn file rules: `firestore.rules`.
+
+Nếu bạn dùng Firebase CLI, deploy rules bằng:
+```bash
+firebase deploy --only firestore:rules
+```
+
+Hoặc trong Firebase Console → **Firestore Database** → **Rules**, copy nội dung từ `firestore.rules` và **Publish**.
+
 ### Bước 4: Cấu hình Storage
 1. Vào **Storage** → **Get started**
 2. Chọn **Start in test mode**
