@@ -352,6 +352,7 @@ class _PlaybackControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final player = AudioPlayerService.instance;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -379,10 +380,33 @@ class _PlaybackControls extends StatelessWidget {
               ),
             ],
           ),
-          child: IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.play_arrow_rounded, size: 44),
-            color: Colors.white,
+          child: StreamBuilder<bool>(
+            stream: player.playingStream,
+            builder: (context, snapshot) {
+              final playing = snapshot.data ?? player.isPlaying;
+              return IconButton(
+                onPressed: () async {
+                  try {
+                    if (playing) {
+                      await player.pause();
+                    } else {
+                      await player.play();
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Không thể phát: $e')),
+                      );
+                    }
+                  }
+                },
+                icon: Icon(
+                  playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  size: 44,
+                ),
+                color: Colors.white,
+              );
+            },
           ),
         ),
         IconButton(

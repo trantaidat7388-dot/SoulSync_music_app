@@ -88,6 +88,7 @@ class FirebaseService extends ChangeNotifier {
                 'email': email,
                 'photoUrl': null,
                 'bio': '',
+                'isAdmin': false,
                 'createdAt': FieldValue.serverTimestamp(),
                 'updatedAt': FieldValue.serverTimestamp(),
                 'favoriteGenres': [],

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
 import '../services/deezer_service.dart';
 import '../models/music_models.dart';
+import '../services/audio_player_service.dart';
+import '../services/cloudinary_service.dart';
+import '../services/firebase_service.dart';
 import 'playlist_detail_screen.dart';
 import 'artist_detail_screen.dart';
 
@@ -410,183 +416,324 @@ class _SongsTab extends StatefulWidget {
 }
 
 class _SongsTabState extends State<_SongsTab> {
-  final DeezerService _deezerService = DeezerService();
-  List<Track> _tracks = [];
-  bool _isLoading = true;
+  bool _uploading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadTracks();
+  bool _isAdmin(BuildContext context) {
+    final firebase = Provider.of<FirebaseService>(context, listen: false);
+    final profile = firebase.userProfile;
+    return profile is Map<String, dynamic> && profile['isAdmin'] == true;
   }
 
-  Future<void> _loadTracks() async {
-    setState(() => _isLoading = true);
+  Future<void> _uploadAudioToCloudinary() async {
+    if (_uploading) return;
+
+    if (!_isAdmin(context)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ Admin mới được upload nhạc.')),
+      );
+      return;
+    }
+
+    setState(() => _uploading = true);
     try {
-      final tracks = await _deezerService.getChartTracks(limit: 30);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowMultiple: false,
+        withData: true,
+        allowedExtensions: const ['mp3', 'm4a', 'wav'],
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final picked = result.files.single;
+      final bytes = picked.bytes;
+      final filename = (picked.name).trim();
+
+      if (bytes == null || bytes.isEmpty) {
+        throw StateError('Không đọc được file (bytes rỗng). Thử chọn file khác.');
+      }
+
+      if (filename.isEmpty) {
+        throw StateError('Tên file không hợp lệ.');
+      }
+
+      final cloudinary = const CloudinaryService();
+      final uploaded = await cloudinary.uploadAudio(bytes: bytes, filename: filename);
+
+      final nameWithoutExt = filename.contains('.')
+          ? filename.substring(0, filename.lastIndexOf('.'))
+          : filename;
+
+      await FirebaseFirestore.instance.collection('tracks').add({
+        'name': nameWithoutExt,
+        'artistName': 'Unknown Artist',
+        'imageUrl': '',
+        'previewUrl': uploaded.secureUrl,
+        'cloudinaryPublicId': uploaded.publicId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
       if (mounted) {
-        setState(() {
-          _tracks = tracks;
-          _isLoading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Upload thành công! Bài hát đã được thêm vào Library.')),
+        );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading tracks: $e')),
+          SnackBar(content: Text('Upload thất bại: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _uploading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-        ),
-      );
-    }
+    final player = AudioPlayerService.instance;
+    final isAdmin = _isAdmin(context);
 
-    if (_tracks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.music_off_rounded,
-              size: 80,
-              color: AppColors.textMuted.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No songs found',
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadTracks,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(24),
-      itemCount: _tracks.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final track = _tracks[index];
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 400 + (index * 50)),
-          curve: Curves.easeOut,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value.clamp(0.0, 1.0),
-              child: Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: child,
-              ),
-            );
-          },
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(vertical: 8),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: track.imageUrl.isNotEmpty
-                  ? Image.network(
-                      track.imageUrl,
-                      height: 48,
-                      width: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 48,
-                          width: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.music_note_rounded,
-                            color: AppColors.primary,
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      height: 48,
-                      width: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.music_note_rounded,
-                        color: AppColors.primary,
-                      ),
-                    ),
-            ),
-            title: Text(
-              track.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              track.artistName,
-              style: const TextStyle(color: AppColors.textMuted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  track.duration,
-                  style: const TextStyle(color: AppColors.textMuted),
+    return Column(
+      children: [
+        if (isAdmin)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _uploading ? null : _uploadAudioToCloudinary,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.play_circle_filled),
-                  color: AppColors.primary,
-                  onPressed: () {
-                    if (track.previewUrl != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Playing ${track.name}...'),
-                          duration: const Duration(seconds: 2),
+                icon: _uploading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No preview available'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
+                      )
+                    : const Icon(Icons.cloud_upload_rounded),
+                label: Text(_uploading ? 'Uploading...' : 'Upload audio'),
+              ),
             ),
           ),
-        );
-      },
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('tracks').orderBy('createdAt', descending: true).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Error loading tracks: ${snapshot.error}',
+                      style: const TextStyle(color: AppColors.textMuted),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
+              }
+
+              final docs = snapshot.data!.docs;
+              final tracks = docs
+                  .map((d) => Track.fromFirestore(d.data(), id: d.id))
+                  .where((t) => t.previewUrl != null && t.previewUrl!.trim().isNotEmpty)
+                  .toList();
+
+              if (tracks.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.music_off_rounded,
+                        size: 80,
+                        color: AppColors.textMuted.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No songs found',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          isAdmin
+                              ? 'Bấm "Upload audio" để thêm bài từ máy tính.'
+                              : 'Chưa có bài hát. Hãy đợi Admin upload nhạc.',
+                          style: const TextStyle(color: AppColors.textMuted),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 140),
+                itemCount: tracks.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final track = tracks[index];
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: Duration(milliseconds: 300 + (index * 40)),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value.clamp(0.0, 1.0),
+                        child: Transform.translate(
+                          offset: Offset(0, 16 * (1 - value)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: track.imageUrl.isNotEmpty
+                            ? Image.network(
+                                track.imageUrl,
+                                height: 48,
+                                width: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 48,
+                                    width: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.music_note_rounded,
+                                      color: AppColors.primary,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                height: 48,
+                                width: 48,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.music_note_rounded,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                      ),
+                      title: Text(
+                        track.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textMain,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        track.artistName,
+                        style: const TextStyle(color: AppColors.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.play_circle_filled),
+                        color: AppColors.primary,
+                        onPressed: () async {
+                          if (context.mounted) {
+                            final messenger = ScaffoldMessenger.of(context);
+                            messenger.hideCurrentSnackBar();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Đang tải bài hát...'),
+                                duration: Duration(minutes: 5),
+                              ),
+                            );
+                          }
+                          try {
+                            await player.playTrack(track);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Playing ${track.name}'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              final msg = e.toString();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Không phát được: $msg')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      onTap: () async {
+                        if (context.mounted) {
+                          final messenger = ScaffoldMessenger.of(context);
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Đang tải bài hát...'),
+                              duration: Duration(minutes: 5),
+                            ),
+                          );
+                        }
+                        try {
+                          await player.playTrack(track);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            final msg = e.toString();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Không phát được: $msg')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -44,6 +44,41 @@ class Track {
     );
   }
 
+  /// Minimal Firestore schema supported (collection: `tracks`):
+  /// - name: string
+  /// - artistName: string
+  /// - imageUrl: string
+  /// - previewUrl: string (Cloudinary secure_url)
+  /// Optional:
+  /// - durationMs: number
+  /// - popularity: number
+  /// - albumName / albumId / artistId
+  factory Track.fromFirestore(Map<String, dynamic> json, {required String id}) {
+    int readInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    String readString(dynamic value) => value?.toString() ?? '';
+
+    return Track(
+      id: id,
+      name: readString(json['name']).isEmpty ? 'Unknown' : readString(json['name']),
+      artistName: readString(json['artistName']).isEmpty ? 'Unknown Artist' : readString(json['artistName']),
+      artistId: readString(json['artistId']),
+      albumName: readString(json['albumName']),
+      albumId: readString(json['albumId']),
+      imageUrl: readString(json['imageUrl']),
+      previewUrl: readString(json['previewUrl']).isEmpty ? null : readString(json['previewUrl']),
+      localPath: null,
+      isDownloaded: false,
+      durationMs: readInt(json['durationMs']),
+      popularity: readInt(json['popularity']),
+    );
+  }
+
   String get duration {
     final minutes = (durationMs / 60000).floor();
     final seconds = ((durationMs % 60000) / 1000).floor();
