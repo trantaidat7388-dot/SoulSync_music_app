@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Windows) - Cloudinary",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "deviceId": "windows",
+      "args": [
+        "--dart-define=CLOUDINARY_CLOUD_NAME=da4twl0sn",
+        "--dart-define=CLOUDINARY_UPLOAD_PRESET=soulsync_avatars",
+        "--dart-define=CLOUDINARY_AVATAR_FOLDER=avatars"
+      ]
+    }
+  ]
+}
