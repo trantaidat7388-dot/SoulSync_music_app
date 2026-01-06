@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
 import '../services/deezer_service.dart';
 import '../models/music_models.dart';
+import '../services/audio_player_service.dart';
+import '../services/firebase_service.dart';
 import 'playlist_detail_screen.dart';
 import 'artist_detail_screen.dart';
+import 'now_playing_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -410,31 +414,89 @@ class _SongsTab extends StatefulWidget {
 }
 
 class _SongsTabState extends State<_SongsTab> {
-  final DeezerService _deezerService = DeezerService();
-  List<Track> _tracks = [];
-  bool _isLoading = true;
+  Future<void> _deleteTrack(BuildContext context, Track track) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: const Text(
+          'Xóa bài hát?',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMain,
+          ),
+        ),
+        content: Text(
+          'Bạn có chắc muốn xóa "${track.name}"?\nHành động này không thể hoàn tác.',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
 
-  @override
-  void initState() {
-    super.initState();
-    _loadTracks();
-  }
+    if (confirmed != true || !context.mounted) return;
 
-  Future<void> _loadTracks() async {
-    setState(() => _isLoading = true);
     try {
-      final tracks = await _deezerService.getChartTracks(limit: 30);
-      if (mounted) {
-        setState(() {
-          _tracks = tracks;
-          _isLoading = false;
-        });
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đang xóa bài hát...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Delete from Firestore
+      await FirebaseFirestore.instance.collection('tracks').doc(track.id).delete();
+
+      // Optionally delete from Cloudinary
+      // Note: This requires Cloudinary admin API credentials
+      // For now, we'll just delete from Firestore
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã xóa "${track.name}"'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading tracks: $e')),
+          SnackBar(
+            content: Text('Lỗi khi xóa: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -442,76 +504,116 @@ class _SongsTabState extends State<_SongsTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-        ),
-      );
-    }
+    final player = AudioPlayerService.instance;
+    final firebaseService = FirebaseService();
+    final profile = firebaseService.userProfile;
+    final isAdmin = profile != null && profile['isAdmin'] == true;
 
-    if (_tracks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.music_off_rounded,
-              size: 80,
-              color: AppColors.textMuted.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No songs found',
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textMuted,
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('tracks').orderBy('createdAt', descending: true).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Error loading tracks: ${snapshot.error}',
+                style: const TextStyle(color: AppColors.textMuted),
+                textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadTracks,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(24),
-      itemCount: _tracks.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final track = _tracks[index];
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 400 + (index * 50)),
-          curve: Curves.easeOut,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value.clamp(0.0, 1.0),
-              child: Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: child,
-              ),
-            );
-          },
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(vertical: 8),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: track.imageUrl.isNotEmpty
-                  ? Image.network(
-                      track.imageUrl,
-                      height: 48,
-                      width: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final tracks = docs
+            .map((d) => Track.fromFirestore(d.data(), id: d.id))
+            .where((t) => t.previewUrl != null && t.previewUrl!.trim().isNotEmpty)
+            .toList();
+
+        if (tracks.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.music_off_rounded,
+                  size: 80,
+                  color: AppColors.textMuted.withOpacity(0.5),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No songs found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'Chưa có bài hát. Hãy đợi Admin upload nhạc.',
+                    style: TextStyle(color: AppColors.textMuted),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 140),
+          itemCount: tracks.length,
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final track = tracks[index];
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: Duration(milliseconds: 300 + (index * 40)),
+              curve: Curves.easeOut,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: Transform.translate(
+                    offset: Offset(0, 16 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: track.imageUrl.isNotEmpty
+                      ? Image.network(
+                          track.imageUrl,
+                          height: 48,
+                          width: 48,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 48,
+                              width: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.music_note_rounded,
+                                color: AppColors.primary,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
                           height: 48,
                           width: 48,
                           decoration: BoxDecoration(
@@ -522,69 +624,107 @@ class _SongsTabState extends State<_SongsTab> {
                             Icons.music_note_rounded,
                             color: AppColors.primary,
                           ),
-                        );
-                      },
-                    )
-                  : Container(
-                      height: 48,
-                      width: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.music_note_rounded,
-                        color: AppColors.primary,
-                      ),
-                    ),
-            ),
-            title: Text(
-              track.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              track.artistName,
-              style: const TextStyle(color: AppColors.textMuted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  track.duration,
-                  style: const TextStyle(color: AppColors.textMuted),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.play_circle_filled),
-                  color: AppColors.primary,
-                  onPressed: () {
-                    if (track.previewUrl != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Playing ${track.name}...'),
-                          duration: const Duration(seconds: 2),
                         ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No preview available'),
-                          duration: Duration(seconds: 1),
+                ),
+                title: Text(
+                  track.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMain,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  track.artistName,
+                  style: const TextStyle(color: AppColors.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isAdmin)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        color: Colors.red,
+                        onPressed: () => _deleteTrack(context, track),
+                        tooltip: 'Xóa bài hát',
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.play_circle_filled),
+                      color: AppColors.primary,
+                      onPressed: () async {
+                        if (context.mounted) {
+                          final messenger = ScaffoldMessenger.of(context);
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Đang tải bài hát...'),
+                              duration: Duration(minutes: 5),
+                            ),
+                          );
+                        }
+                        try {
+                          await player.playTrack(track);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Playing ${track.name}'),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            final msg = e.toString();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Không phát được: $msg')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                onTap: () async {
+                  if (context.mounted) {
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.hideCurrentSnackBar();
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Đang tải bài hát...'),
+                        duration: Duration(minutes: 5),
+                      ),
+                    );
+                  }
+                  try {
+                    await player.playTrack(track);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      // Mở màn hình Now Playing
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NowPlayingScreen(),
                         ),
                       );
                     }
-                  },
-                ),
-              ],
-            ),
-          ),
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      final msg = e.toString();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Không phát được: $msg')),
+                      );
+                    }
+                  }
+                },
+              ),
+            );
+          },
         );
       },
     );
@@ -1021,6 +1161,163 @@ class _ArtistsTabState extends State<_ArtistsTab> {
           ),
         );
       },
+    );
+  }
+}
+
+// Dialog for uploading track with info
+class _UploadTrackDialog extends StatefulWidget {
+  const _UploadTrackDialog();
+
+  @override
+  State<_UploadTrackDialog> createState() => _UploadTrackDialogState();
+}
+
+class _UploadTrackDialogState extends State<_UploadTrackDialog> {
+  final _nameController = TextEditingController();
+  final _artistController = TextEditingController();
+  final _albumController = TextEditingController();
+  bool _uploadImage = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _artistController.dispose();
+    _albumController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      title: const Text(
+        'Thông tin bài hát',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMain,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Tên bài hát',
+                hintText: 'Nhập tên bài hát',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _artistController,
+              decoration: InputDecoration(
+                labelText: 'Nghệ sĩ',
+                hintText: 'Nhập tên nghệ sĩ',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _albumController,
+              decoration: InputDecoration(
+                labelText: 'Album (tùy chọn)',
+                hintText: 'Nhập tên album',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              value: _uploadImage,
+              onChanged: (value) {
+                setState(() {
+                  _uploadImage = value ?? false;
+                });
+              },
+              title: const Text(
+                'Thêm ảnh bìa',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textMain,
+                ),
+              ),
+              subtitle: const Text(
+                'Chọn ảnh từ máy và upload lên Cloudinary',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              activeColor: AppColors.primary,
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Hủy',
+            style: TextStyle(color: AppColors.textMuted),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final name = _nameController.text.trim();
+            final artist = _artistController.text.trim();
+            final album = _albumController.text.trim();
+
+            if (name.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Vui lòng nhập tên bài hát')),
+              );
+              return;
+            }
+
+            Navigator.pop(context, {
+              'name': name,
+              'artistName': artist.isEmpty ? 'Unknown Artist' : artist,
+              'albumName': album,
+              'imageUrl': _uploadImage ? 'UPLOAD' : '',
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: const Text('Tiếp tục'),
+        ),
+      ],
     );
   }
 }

@@ -701,8 +701,16 @@ class _SearchResultItem extends StatelessWidget {
       onTap: () async {
         // Phát nhạc ngay khi tap
         final player = AudioPlayerService.instance;
-        await player.setTrack(track);
-        await player.play();
+        try {
+          await player.playTrack(track);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Không phát được bài này: $e')),
+            );
+          }
+          return;
+        }
         
         // Navigate đến Now Playing
         if (context.mounted) {

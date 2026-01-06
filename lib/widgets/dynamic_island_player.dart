@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../screens/now_playing_screen.dart';
+import '../models/music_models.dart';
+import '../services/audio_player_service.dart';
 
 class DynamicIslandPlayer extends StatefulWidget {
   const DynamicIslandPlayer({super.key});
@@ -13,18 +15,17 @@ class DynamicIslandPlayer extends StatefulWidget {
 class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     with TickerProviderStateMixin {
   bool _isExpanded = false;
-  bool _isPlaying = true;
+  bool _isPlaying = false;
   bool _isShuffled = false;
   bool _isLiked = false;
   int _repeatMode = 0; // 0: off, 1: repeat all, 2: repeat one
-  double _progress = 0.35; // 35% progress (01:02 of 03:08)
+  double _progress = 0.0;
   double _volume = 0.7;
-  Timer? _progressTimer;
-  
-  // Sample track data
-  final String _currentTrack = 'Lag Lag';
-  final String _currentArtist = 'Quang Hùng MasterD';
-  final String _albumArt = 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9fxCh6ix0aWLgour1YPDsqEAdkSI_q85A_PQ-r-IpV15bFAnCSroUA2hJvtpfEecrMtv6AED61ldXvgn4uH-IiRnElltY4h_YrxbBlPx3BnrGwXGEC9aE1okxT9imLOMmawLxC-IYRS_ABtMvc3IXv7FwqF2kmLHHLjcq9SxUET6r8oSBK48CJcInyPnZPeWVO9owgW3QrGXXfzWiJtRErdJyzR2cQ_vRGO1JqxYeoT2y70dxJyRIhCrL-u-OB3Ed4A9wPIaxQw';
+
+  Track? _track;
+  StreamSubscription<Track?>? _trackSub;
+  StreamSubscription<bool>? _playingSub;
+  StreamSubscription<double>? _progressSub;
 
   late AnimationController _animationController;
   late AnimationController _waveAnimationController;
@@ -54,31 +55,40 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
       curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
     );
 
-    _startProgressTimer();
+    final player = AudioPlayerService.instance;
+    _track = player.currentTrack;
+    _isPlaying = player.isPlaying;
+
+    _trackSub = player.trackStream.listen((t) {
+      if (!mounted) return;
+      setState(() {
+        _track = t;
+      });
+    });
+
+    _playingSub = player.playingStream.listen((playing) {
+      if (!mounted) return;
+      setState(() {
+        _isPlaying = playing;
+      });
+    });
+
+    _progressSub = player.progressStream.listen((pct) {
+      if (!mounted) return;
+      setState(() {
+        _progress = pct;
+      });
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _waveAnimationController.dispose();
-    _progressTimer?.cancel();
+    _trackSub?.cancel();
+    _playingSub?.cancel();
+    _progressSub?.cancel();
     super.dispose();
-  }
-
-  void _startProgressTimer() {
-    _progressTimer?.cancel();
-    if (_isPlaying) {
-      _progressTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_isPlaying && mounted) {
-          setState(() {
-            _progress += 0.0053;
-            if (_progress >= 1.0) {
-              _progress = 0.0;
-            }
-          });
-        }
-      });
-    }
   }
 
   void _toggleExpanded() {
@@ -92,11 +102,26 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     });
   }
 
-  void _togglePlayPause() {
-    setState(() {
-      _isPlaying = !_isPlaying;
-      _startProgressTimer();
-    });
+  Future<void> _togglePlayPause() async {
+    final player = AudioPlayerService.instance;
+    if (player.currentTrack == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chưa có bài đang phát.')),
+      );
+      return;
+    }
+
+    try {
+      if (player.isPlaying) {
+        await player.pause();
+      } else {
+        await player.play();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không điều khiển được phát nhạc: $e')),
+      );
+    }
   }
 
   void _toggleLike() {
@@ -153,6 +178,13 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
   }
 
   void _openNowPlaying() {
+    if (_track == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chưa có bài đang phát.')),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       PageRouteBuilder(
@@ -206,6 +238,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
           left: _isExpanded ? 16 : screenWidth / 2 - 100,
           right: _isExpanded ? 16 : null,
           child: GestureDetector(
+            // Keep original behavior: tap to expand/collapse, NOT open NowPlaying.
             onTap: () {
               if (!_isExpanded) {
                 _toggleExpanded();
@@ -252,38 +285,53 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
   }
 
   Widget _buildCompactView() {
+    final track = _track;
+    final title = track?.name.trim().isNotEmpty == true ? track!.name : 'Unknown';
+    final artist = track?.artistName.trim().isNotEmpty == true ? track!.artistName : 'Unknown Artist';
+    final artUrl = track?.imageUrl.trim() ?? '';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          Hero(
-            tag: 'album_art_hero',
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                color: AppColors.primary.withOpacity(0.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  _albumArt,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.music_note_rounded,
-                      color: AppColors.primary,
-                      size: 16,
-                    );
-                  },
+          // Original behavior: only tapping the album art opens NowPlaying.
+          GestureDetector(
+            onTap: _openNowPlaying,
+            child: Hero(
+              tag: 'album_art_hero',
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: AppColors.primary.withOpacity(0.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: artUrl.isNotEmpty
+                      ? Image.network(
+                          artUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.music_note_rounded,
+                              color: AppColors.primary,
+                              size: 16,
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.music_note_rounded,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
                 ),
               ),
             ),
@@ -295,7 +343,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _currentTrack,
+                  title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -306,7 +354,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                 ),
                 const SizedBox(height: 1),
                 Text(
-                  _currentArtist,
+                  artist,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.6),
                     fontSize: 9,
@@ -328,6 +376,12 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
   }
 
   Widget _buildExpandedView() {
+    final track = _track;
+    final title = track?.name.trim().isNotEmpty == true ? track!.name : 'Unknown';
+    final artist = track?.artistName.trim().isNotEmpty == true ? track!.artistName : 'Unknown Artist';
+    final artUrl = track?.imageUrl.trim() ?? '';
+    final totalMs = track?.durationMs ?? 0;
+
     return AnimatedBuilder(
       animation: _contentAnimation,
       builder: (context, child) {
@@ -364,7 +418,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  _albumArt,
+                                  artUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
@@ -389,7 +443,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _currentTrack,
+                                  title,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,
@@ -400,7 +454,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  _currentArtist,
+                                  artist,
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.6),
                                     fontSize: 12,
@@ -448,9 +502,13 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                           child: Slider(
                             value: _progress,
                             onChanged: (value) {
+                              if (totalMs <= 0) return;
                               setState(() {
                                 _progress = value;
                               });
+                              AudioPlayerService.instance.seek(
+                                Duration(milliseconds: (totalMs * value).round()),
+                              );
                             },
                           ),
                         ),

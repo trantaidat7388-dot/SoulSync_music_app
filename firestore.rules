@@ -10,6 +10,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Public catalog (admin writes only)
+    match /tracks/{trackId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     // User profile document
     match /users/{userId} {
       allow read, create, update, delete: if isOwner(userId);
