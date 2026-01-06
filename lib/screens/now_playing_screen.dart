@@ -208,52 +208,62 @@ class _AlbumArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Shadow/Glow
-        Positioned(
-          bottom: 0,
-          left: 20,
-          right: 20,
-          top: 20,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(100),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.2),
-                  blurRadius: 40,
-                  offset: const Offset(0, 20),
-                ),
-              ],
-            ),
-          ),
-        ),
+    final player = AudioPlayerService.instance;
+    return StreamBuilder<Track?>(
+      stream: player.trackStream,
+      initialData: player.currentTrack,
+      builder: (context, snapshot) {
+        final track = snapshot.data ?? player.currentTrack;
+        final imageUrl = track?.imageUrl ?? 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9fxCh6ix0aWLgour1YPDsqEAdkSI_q85A_PQ-r-IpV15bFAnCSroUA2hJvtpfEecrMtv6AED61ldXvgn4uH-IiRnElltY4h_YrxbBlPx3BnrGwXGEC9aE1okxT9imLOMmawLxC-IYRS_ABtMvc3IXv7FwqF2kmLHHLjcq9SxUET6r8oSBK48CJcInyPnZPeWVO9owgW3QrGXXfzWiJtRErdJyzR2cQ_vRGO1JqxYeoT2y70dxJyRIhCrL-u-OB3Ed4A9wPIaxQw';
         
-        // Main Image
-        AspectRatio(
-          aspectRatio: 1,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(40),
-              color: AppColors.surfaceLight,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.15),
-                  blurRadius: 40,
-                  offset: const Offset(0, 10),
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Shadow/Glow
+            Positioned(
+              bottom: 0,
+              left: 20,
+              right: 20,
+              top: 20,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 40,
+                      offset: const Offset(0, 20),
+                    ),
+                  ],
                 ),
-              ],
-              image: const DecorationImage(
-                image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuD9fxCh6ix0aWLgour1YPDsqEAdkSI_q85A_PQ-r-IpV15bFAnCSroUA2hJvtpfEecrMtv6AED61ldXvgn4uH-IiRnElltY4h_YrxbBlPx3BnrGwXGEC9aE1okxT9imLOMmawLxC-IYRS_ABtMvc3IXv7FwqF2kmLHHLjcq9SxUET6r8oSBK48CJcInyPnZPeWVO9owgW3QrGXXfzWiJtRErdJyzR2cQ_vRGO1JqxYeoT2y70dxJyRIhCrL-u-OB3Ed4A9wPIaxQw'),
-                fit: BoxFit.cover,
               ),
             ),
-          ),
-        ),
-      ],
+            
+            // Main Image
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(40),
+                  color: AppColors.surfaceLight,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.15),
+                      blurRadius: 40,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                  image: DecorationImage(
+                    image: NetworkImage(imageUrl),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -274,8 +284,10 @@ class _TrackInfo extends StatelessWidget {
             children: [
               StreamBuilder<Track?>(
                 stream: player.trackStream,
+                initialData: player.currentTrack,
                 builder: (context, snapshot) {
-                  final title = snapshot.data?.name ?? 'No track';
+                  final track = snapshot.data ?? player.currentTrack;
+                  final title = track?.name ?? 'No track';
                   return Text(
                     title,
                     style: const TextStyle(
@@ -292,8 +304,10 @@ class _TrackInfo extends StatelessWidget {
               const SizedBox(height: 4),
               StreamBuilder<Track?>(
                 stream: player.trackStream,
+                initialData: player.currentTrack,
                 builder: (context, snapshot) {
-                  final artist = snapshot.data?.artistName ?? '';
+                  final track = snapshot.data ?? player.currentTrack;
+                  final artist = track?.artistName ?? '';
                   return Text(
                     artist,
                     style: const TextStyle(
@@ -320,27 +334,58 @@ class _TrackInfo extends StatelessWidget {
 class _ReactiveProgressBar extends StatelessWidget {
   const _ReactiveProgressBar();
 
+  String _formatDuration(double progressPct, int totalSeconds) {
+    final currentSeconds = (progressPct * totalSeconds).round();
+    final currentMinutes = currentSeconds ~/ 60;
+    final currentSecs = currentSeconds % 60;
+    return '${currentMinutes.toString()}:${currentSecs.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTotalDuration(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString()}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = AudioPlayerService.instance;
     return StreamBuilder<double>(
       stream: player.progressStream,
+      initialData: 0.0,
       builder: (context, snapshot) {
         final pct = snapshot.data ?? 0.0;
-        return Column(
-          children: [
-            Slider(
-              value: pct.clamp(0.0, 1.0),
-              onChanged: (_) {},
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('0:00', style: TextStyle(color: AppColors.textMuted)),
-                Text('3:08', style: TextStyle(color: AppColors.textMuted)),
+        return StreamBuilder<Track?>(
+          stream: player.trackStream,
+          initialData: player.currentTrack,
+          builder: (context, trackSnapshot) {
+            final track = trackSnapshot.data ?? player.currentTrack;
+            final duration = (track?.durationMs ?? 0) ~/ 1000;
+            
+            return Column(
+              children: [
+                Slider(
+                  value: pct.clamp(0.0, 1.0),
+                  onChanged: (_) {},
+                  activeColor: AppColors.primary,
+                  inactiveColor: AppColors.textMuted.withOpacity(0.3),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(pct, duration),
+                      style: const TextStyle(color: AppColors.textMuted),
+                    ),
+                    Text(
+                      _formatTotalDuration(duration),
+                      style: const TextStyle(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
               ],
-            ),
-          ],
+            );
+          },
         );
       },
     );

@@ -12,7 +12,9 @@
         "--dart-define=CLOUDINARY_UPLOAD_PRESET=soulsync_avatars",
         "--dart-define=CLOUDINARY_AVATAR_FOLDER=avatars",
         "--dart-define=CLOUDINARY_AUDIO_UPLOAD_PRESET=soulsync_audio",
-        "--dart-define=CLOUDINARY_AUDIO_FOLDER=audio"
+        "--dart-define=CLOUDINARY_AUDIO_FOLDER=audio",
+        "--dart-define=CLOUDINARY_TRACK_COVER_UPLOAD_PRESET=soulsync_track_covers",
+        "--dart-define=CLOUDINARY_TRACK_COVER_FOLDER=track_covers"
       ]
     }
   ]

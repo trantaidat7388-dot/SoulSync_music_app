@@ -22,6 +22,12 @@ class CloudinaryConfig {
     'CLOUDINARY_AUDIO_UPLOAD_PRESET',
   );
 
+  /// Optional separate preset for track cover images.
+  /// If not provided, falls back to `CLOUDINARY_UPLOAD_PRESET`.
+  static const String trackCoverUploadPreset = String.fromEnvironment(
+    'CLOUDINARY_TRACK_COVER_UPLOAD_PRESET',
+  );
+
   static const String avatarFolder = String.fromEnvironment(
     'CLOUDINARY_AVATAR_FOLDER',
     defaultValue: 'avatars',
@@ -32,10 +38,20 @@ class CloudinaryConfig {
     defaultValue: 'audio',
   );
 
+  static const String trackCoverFolder = String.fromEnvironment(
+    'CLOUDINARY_TRACK_COVER_FOLDER',
+    defaultValue: 'track_covers',
+  );
+
   static bool get isConfigured => cloudName.trim().isNotEmpty && uploadPreset.trim().isNotEmpty;
 
   static String get effectiveAudioUploadPreset {
     final preset = audioUploadPreset.trim();
+    return preset.isNotEmpty ? preset : uploadPreset.trim();
+  }
+
+  static String get effectiveTrackCoverUploadPreset {
+    final preset = trackCoverUploadPreset.trim();
     return preset.isNotEmpty ? preset : uploadPreset.trim();
   }
 
