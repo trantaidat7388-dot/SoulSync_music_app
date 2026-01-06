@@ -1,7 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:music_app/utils/avatar_image.dart';
+import 'package:music_app/screens/camera_capture_screen.dart';
 import 'package:provider/provider.dart';
 import '../theme/colors.dart';
 import '../services/app_language.dart';
@@ -61,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.primary.withOpacity(0.3),
+                    AppColors.primary.withAlpha((0.3 * 255).round()),
                     Colors.transparent,
                   ],
                 ),
@@ -182,7 +183,7 @@ class _ProfileCardState extends State<_ProfileCard> {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withAlpha((0.05 * 255).round()),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -203,7 +204,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                           border: Border.all(color: AppColors.primary, width: 4),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
+                              color: AppColors.primary.withAlpha((0.3 * 255).round()),
                               blurRadius: 20,
                             ),
                           ],
@@ -224,7 +225,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                             Positioned.fill(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.45),
+                                  color: Colors.black.withAlpha((0.45 * 255).round()),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Center(
@@ -279,7 +280,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted.withOpacity(0.8),
+                    color: AppColors.textMuted.withAlpha((0.8 * 255).round()),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -346,7 +347,7 @@ class _ProfileCardState extends State<_ProfileCard> {
   Widget _buildDefaultAvatar(String? name) {
     final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
     return Container(
-      color: AppColors.primary.withOpacity(0.2),
+      color: AppColors.primary.withAlpha((0.2 * 255).round()),
       child: Center(
         child: Text(
           initial,
@@ -370,7 +371,7 @@ class _ProfileCardState extends State<_ProfileCard> {
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha((0.05 * 255).round()),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -445,31 +446,60 @@ class _ProfileCardState extends State<_ProfileCard> {
   Future<void> _pickAndUploadAvatar(ImageSource source) async {
     if (_isUploadingAvatar) return;
 
-    try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 900,
-        maxHeight: 900,
-        imageQuality: 85,
-      );
+    final firebaseService = context.read<FirebaseService>();
+    final messenger = ScaffoldMessenger.of(context);
 
-      if (pickedFile == null) return;
+    try {
+      final XFile pickedFile;
+
+      // On Windows, `image_picker` camera is often unsupported.
+      if (source == ImageSource.camera && defaultTargetPlatform == TargetPlatform.windows) {
+        final captured = await Navigator.of(context).push<XFile>(
+          MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
+        );
+        if (captured == null) return;
+        pickedFile = captured;
+      } else {
+        try {
+          pickedFile = await _imagePicker.pickImage(
+                source: source,
+                maxWidth: 900,
+                maxHeight: 900,
+                imageQuality: 85,
+              ) ??
+              (throw StateError('No file selected'));
+        } on UnimplementedError {
+          _showSnack(
+            messenger,
+            source == ImageSource.camera
+                ? 'Thiết bị này không hỗ trợ chụp ảnh'
+                : 'Tính năng chọn ảnh không được hỗ trợ',
+            isError: true,
+          );
+          return;
+        } on StateError {
+          return;
+        }
+      }
+
+      if (!mounted) return;
 
       setState(() => _isUploadingAvatar = true);
-      final Uint8List bytes = await pickedFile.readAsBytes();
-      final firebaseService = context.read<FirebaseService>();
+
+      // Compress on supported platforms; fallback to pure-dart compression on desktop.
+      final bytes = await prepareAvatarBytes(pickedFile);
+
       final error = await firebaseService.uploadAvatar(bytes);
 
       if (!mounted) return;
       if (error != null) {
-        _showSnack(context, error, isError: true);
+        _showSnack(messenger, error, isError: true);
       } else {
-        _showSnack(context, 'Ảnh đại diện đã được cập nhật');
+        _showSnack(messenger, 'Ảnh đại diện đã được cập nhật');
       }
     } catch (e) {
-      if (mounted) {
-        _showSnack(context, 'Không thể cập nhật ảnh: $e', isError: true);
-      }
+      if (!mounted) return;
+      _showSnack(messenger, 'Không thể cập nhật ảnh: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
@@ -477,25 +507,26 @@ class _ProfileCardState extends State<_ProfileCard> {
     }
   }
 
-  Future<void> _removeAvatar(BuildContext context) async {
+  Future<void> _removeAvatar() async {
     if (_isUploadingAvatar) return;
+
+    final firebaseService = context.read<FirebaseService>();
+    final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _isUploadingAvatar = true);
 
     try {
-      final firebaseService = context.read<FirebaseService>();
       final error = await firebaseService.removeAvatar();
 
       if (!mounted) return;
       if (error != null) {
-        _showSnack(context, error, isError: true);
+        _showSnack(messenger, error, isError: true);
       } else {
-        _showSnack(context, 'Đã xoá ảnh đại diện');
+        _showSnack(messenger, 'Đã xoá ảnh đại diện');
       }
     } catch (e) {
-      if (mounted) {
-        _showSnack(context, 'Không thể xoá ảnh: $e', isError: true);
-      }
+      if (!mounted) return;
+      _showSnack(messenger, 'Không thể xoá ảnh: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
@@ -563,7 +594,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                 'Remove Photo',
                 () {
                   Navigator.pop(sheetContext);
-                  _removeAvatar(context);
+                  _removeAvatar();
                 },
               ),
             ],
@@ -611,8 +642,8 @@ class _ProfileCardState extends State<_ProfileCard> {
     }
   }
 
-  void _showSnack(BuildContext context, String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  void _showSnack(ScaffoldMessengerState messenger, String message, {bool isError = false}) {
+    messenger.showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: isError ? Colors.red : AppColors.primary,
@@ -640,7 +671,7 @@ class _ProfileCardState extends State<_ProfileCard> {
               height: 48,
               width: 48,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withAlpha((0.1 * 255).round()),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1059,13 +1090,13 @@ void _showLanguageDialog(BuildContext context, Function() onLanguageChanged) {
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: isSelected 
-                        ? AppColors.primary.withOpacity(0.1) 
+                      ? AppColors.primary.withAlpha((0.1 * 255).round())
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected 
                           ? AppColors.primary 
-                          : Colors.grey.withOpacity(0.3),
+                          : Colors.grey.withAlpha((0.3 * 255).round()),
                       width: isSelected ? 2 : 1,
                     ),
                   ),

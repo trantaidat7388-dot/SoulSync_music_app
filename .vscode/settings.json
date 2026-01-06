@@ -1,3 +1,8 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "dart.flutterRunAdditionalArgs": [
+        "--dart-define=CLOUDINARY_CLOUD_NAME=da4twl0sn",
+        "--dart-define=CLOUDINARY_UPLOAD_PRESET=soulsync_avatars",
+        "--dart-define=CLOUDINARY_AVATAR_FOLDER=avatars"
+    ]
 }

@@ -1,16 +1,15 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+
+import 'cloudinary_service.dart';
 
 class FirebaseService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final CloudinaryService _cloudinary = const CloudinaryService();
   
   User? _currentUser;
   Map<String, dynamic>? _userProfile;
@@ -182,10 +181,31 @@ class FirebaseService extends ChangeNotifier {
     if (_currentUser == null) return 'Chưa đăng nhập';
     
     try {
-      await _firestore.collection('users').doc(_currentUser!.uid).update({
+      final userDoc = _firestore.collection('users').doc(_currentUser!.uid);
+      final payload = <String, dynamic>{
         ...data,
+        'uid': _currentUser!.uid,
+        'email': _currentUser!.email,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      // `update()` fails when the document doesn't exist (common right after sign-up
+      // because profile creation is best-effort/async). Use upsert semantics.
+      try {
+        await userDoc.update(payload);
+      } on FirebaseException catch (e) {
+        if (e.code == 'not-found') {
+          await userDoc.set(
+            {
+              ...payload,
+              'createdAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+        } else {
+          rethrow;
+        }
+      }
       
       // Update display name in Auth if name is changed
       if (data.containsKey('name')) {
@@ -209,76 +229,15 @@ class FirebaseService extends ChangeNotifier {
     if (_currentUser == null) return 'Chưa đăng nhập';
 
     try {
-      final candidates = _candidateBuckets();
-      FirebaseException? lastFirebaseError;
+      final uid = _currentUser!.uid;
+      final result = await _cloudinary.uploadAvatar(uid: uid, bytes: bytes);
 
-      for (final bucket in candidates) {
-        try {
-          final storage = _storageForBucket(bucket);
-          final ref = storage.ref().child('avatars/${_currentUser!.uid}.jpg');
-
-          await ref.putData(
-            bytes,
-            SettableMetadata(contentType: 'image/jpeg'),
-          );
-
-          // On some platforms, `getDownloadURL` can briefly return object-not-found
-          // immediately after upload. Retry a few times before giving up.
-          String? downloadUrl;
-          const retryDelays = <Duration>[
-            Duration(milliseconds: 200),
-            Duration(milliseconds: 400),
-            Duration(milliseconds: 800),
-          ];
-
-          FirebaseException? lastGetUrlError;
-          for (final delay in <Duration>[Duration.zero, ...retryDelays]) {
-            if (delay != Duration.zero) {
-              await Future<void>.delayed(delay);
-            }
-            try {
-              downloadUrl = await ref.getDownloadURL();
-              lastGetUrlError = null;
-              break;
-            } on FirebaseException catch (e) {
-              lastGetUrlError = e;
-              if (e.code != 'object-not-found') {
-                rethrow;
-              }
-            }
-          }
-
-          if (downloadUrl == null) {
-            throw lastGetUrlError ?? FirebaseException(
-              plugin: 'firebase_storage',
-              code: 'object-not-found',
-              message: 'No object exists at the desired reference.',
-            );
-          }
-
-          return await updateUserProfile({'photoUrl': downloadUrl});
-        } on FirebaseException catch (e) {
-          lastFirebaseError = e;
-
-          // Retry only for bucket/lookup related errors.
-          // If it's permissions/auth or other hard failure, stop early.
-          const retryable = <String>{
-            'object-not-found',
-            'unknown',
-            'bucket-not-found',
-            'invalid-argument',
-          };
-          if (!retryable.contains(e.code)) {
-            return 'Lỗi tải ảnh: ${e.message ?? e.code}';
-          }
-        }
-      }
-
-      if (lastFirebaseError != null) {
-        return 'Lỗi tải ảnh: ${lastFirebaseError.message ?? lastFirebaseError.code}';
-      }
-
-      return 'Lỗi tải ảnh: không xác định';
+      // Store the final URL (for UI) and publicId (for bookkeeping).
+      // Note: deleting from Cloudinary securely requires a signed backend.
+      return await updateUserProfile({
+        'photoUrl': result.secureUrl,
+        'photoPath': result.publicId,
+      });
     } catch (e) {
       return 'Lỗi tải ảnh: $e';
     }
@@ -289,43 +248,12 @@ class FirebaseService extends ChangeNotifier {
     if (_currentUser == null) return 'Chưa đăng nhập';
 
     try {
-      final candidates = _candidateBuckets();
-      for (final bucket in candidates) {
-        final ref = _storageForBucket(bucket).ref().child('avatars/${_currentUser!.uid}.jpg');
-        await ref.delete().catchError((_) => null);
-      }
-
-      return await updateUserProfile({'photoUrl': null});
+      // Unsigned Cloudinary uploads can't safely destroy assets from the client.
+      // We only clear profile references.
+      return await updateUserProfile({'photoUrl': null, 'photoPath': null});
     } catch (e) {
       return 'Lỗi xóa ảnh: $e';
     }
-  }
-
-  List<String> _candidateBuckets() {
-    final options = Firebase.app().options;
-    final configuredBucket = (options.storageBucket ?? '').trim();
-    final projectId = options.projectId;
-
-    final Set<String> buckets = {};
-
-    if (configuredBucket.isNotEmpty) {
-      buckets.add(configuredBucket);
-    }
-
-    // Some Firebase projects use the classic bucket name.
-    if (projectId.isNotEmpty) {
-      buckets.add('$projectId.appspot.com');
-    }
-
-    // NOTE: "*.firebasestorage.app" is a host/domain, not a GCS bucket name.
-    // Using it as a bucket commonly causes "No object exists at the desired reference".
-
-    return buckets.toList(growable: false);
-  }
-
-  FirebaseStorage _storageForBucket(String bucket) {
-    final normalized = bucket.startsWith('gs://') ? bucket : 'gs://$bucket';
-    return FirebaseStorage.instanceFor(bucket: normalized);
   }
   
   // ADD TO FAVORITES
