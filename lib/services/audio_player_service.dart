@@ -1,11 +1,16 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/music_models.dart';
+
+// Repeat modes for playback
+enum RepeatMode {
+  off,   // No repeat
+  one,   // Repeat current track
+  all,   // Repeat entire queue
+}
 
 class AudioPlayerService {
   AudioPlayerService._internal();
@@ -13,98 +18,37 @@ class AudioPlayerService {
 
   final AudioPlayer _player = AudioPlayer();
 
-  bool _initialized = false;
-  bool _busy = false;
-  static const Duration _loadTimeout = Duration(seconds: 20);
-  static const Duration _downloadTimeout = Duration(minutes: 3);
-  static const Duration _playTimeout = Duration(seconds: 5);
-
-  final Dio _dio = Dio();
-
-  String? _extensionFromContentType(String? contentType) {
-    if (contentType == null) return null;
-    final ct = contentType.toLowerCase();
-    if (ct.contains('audio/mpeg') || ct.contains('audio/mp3')) return '.mp3';
-    if (ct.contains('audio/wav') || ct.contains('audio/x-wav')) return '.wav';
-    if (ct.contains('audio/mp4') || ct.contains('audio/m4a') || ct.contains('audio/aac')) return '.m4a';
-    if (ct.contains('audio/ogg')) return '.ogg';
-    return null;
-  }
-
-  Future<String> _cacheRemoteUrlToFile(String url) async {
-    final uri = Uri.parse(url);
-    final tmpDir = await getTemporaryDirectory();
-    final cacheDir = Directory('${tmpDir.path}/audio_cache');
-    if (!await cacheDir.exists()) {
-      await cacheDir.create(recursive: true);
-    }
-
-    // Try to build a stable-ish filename from the URL path.
-    final segments = uri.pathSegments;
-    final rawName = segments.isNotEmpty ? segments.last : 'audio.mp3';
-    final baseName = rawName.isEmpty ? 'audio.mp3' : rawName;
-    String safeName = baseName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    if (!safeName.contains('.')) {
-      try {
-        final head = await _dio
-            .head(
-              url,
-              options: Options(followRedirects: true),
-            )
-            .timeout(const Duration(seconds: 10));
-        final ext = _extensionFromContentType(head.headers.value('content-type'));
-        if (ext != null) safeName = '$safeName$ext';
-      } catch (_) {
-        // Best-effort only; fall back to name without extension.
-      }
-    }
-
-    final file = File('${cacheDir.path}/$safeName');
-
-    if (await file.exists() && await file.length() > 0) {
-      return file.path;
-    }
-
-    await _dio
-        .download(
-      url,
-      file.path,
-      options: Options(
-        followRedirects: true,
-        // Keep defaults for responseType; Dio will stream to file.
-      ),
-    )
-        .timeout(_downloadTimeout);
-
-    if (!await file.exists()) {
-      throw StateError('Download failed: file not created');
-    }
-    final len = await file.length();
-    if (len <= 0) {
-      throw StateError('Download failed: empty file');
-    }
-
-    return file.path;
-  }
-
   // Simple reactive state
   final StreamController<Track?> _trackController = StreamController.broadcast();
   final StreamController<bool> _playingController = StreamController.broadcast();
   final StreamController<double> _progressController = StreamController.broadcast();
+  final StreamController<List<Track>> _queueController = StreamController.broadcast();
+  final StreamController<bool> _shuffleController = StreamController.broadcast();
+  final StreamController<RepeatMode> _repeatController = StreamController.broadcast();
 
   Track? _currentTrack;
+  List<Track> _queue = [];
+  List<Track> _originalQueue = []; // For shuffle functionality
+  int _currentIndex = 0;
+  bool _isShuffleOn = false;
+  RepeatMode _repeatMode = RepeatMode.off;
 
   Stream<Track?> get trackStream => _trackController.stream;
   Stream<bool> get playingStream => _playingController.stream;
   Stream<double> get progressStream => _progressController.stream;
+  Stream<List<Track>> get queueStream => _queueController.stream;
+  Stream<bool> get shuffleStream => _shuffleController.stream;
+  Stream<RepeatMode> get repeatStream => _repeatController.stream;
 
   Track? get currentTrack => _currentTrack;
   bool get isPlaying => _player.playing;
+  List<Track> get queue => List.unmodifiable(_queue);
+  bool get isShuffleOn => _isShuffleOn;
+  RepeatMode get repeatMode => _repeatMode;
+  int get currentIndex => _currentIndex;
+  AudioPlayer get player => _player; // Expose player instance để lấy duration
 
   Future<void> init() async {
-    if (_initialized) return;
-    _initialized = true;
-
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
@@ -119,105 +63,224 @@ class AudioPlayerService {
     _player.playingStream.listen((playing) {
       _playingController.add(playing);
     });
+
+    // Listen for track completion to auto-play next track
+    _player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        _onTrackCompleted();
+      }
+    });
+  }
+
+  // Handle track completion based on repeat mode
+  Future<void> _onTrackCompleted() async {
+    if (_repeatMode == RepeatMode.one) {
+      // Repeat current track
+      await _player.seek(Duration.zero);
+      await _player.play();
+    } else if (_queue.isNotEmpty && _currentIndex < _queue.length - 1) {
+      // Play next track
+      await skipToNext();
+    } else if (_repeatMode == RepeatMode.all && _queue.isNotEmpty) {
+      // Restart queue from beginning
+      await skipToIndex(0);
+    } else {
+      // Queue finished, stop playback
+      await _player.stop();
+    }
+  }
+
+  // Queue management
+  Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
+    if (tracks.isEmpty) {
+      _queue = [];
+      _originalQueue = [];
+      _currentIndex = 0;
+      _queueController.add(_queue);
+      return;
+    }
+
+    _queue = List.from(tracks);
+    _originalQueue = List.from(tracks);
+    _currentIndex = startIndex.clamp(0, tracks.length - 1);
+    _queueController.add(_queue);
+    
+    if (_currentIndex < _queue.length) {
+      await setTrack(_queue[_currentIndex]);
+    }
+  }
+
+  Future<void> addToQueue(Track track) async {
+    _queue.add(track);
+    _originalQueue.add(track);
+    _queueController.add(_queue);
+  }
+
+  Future<void> removeFromQueue(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    
+    final removedTrack = _queue[index];
+    _queue.removeAt(index);
+    _originalQueue.remove(removedTrack);
+    
+    // Adjust current index if needed
+    if (index < _currentIndex) {
+      _currentIndex--;
+    } else if (index == _currentIndex && _queue.isNotEmpty) {
+      // If we removed the current track, play the next one
+      _currentIndex = _currentIndex.clamp(0, _queue.length - 1);
+      await setTrack(_queue[_currentIndex]);
+    }
+    
+    _queueController.add(_queue);
+  }
+
+  Future<void> reorderQueue(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 || oldIndex >= _queue.length) return;
+    if (newIndex < 0 || newIndex >= _queue.length) return;
+    
+    final track = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, track);
+    
+    // Update current index
+    if (oldIndex == _currentIndex) {
+      _currentIndex = newIndex;
+    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
+      _currentIndex--;
+    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
+      _currentIndex++;
+    }
+    
+    _queueController.add(_queue);
+  }
+
+  Future<void> clearQueue() async {
+    _queue.clear();
+    _originalQueue.clear();
+    _currentIndex = 0;
+    _queueController.add(_queue);
+    await _player.stop();
+  }
+
+  // Playback controls
+  Future<void> skipToNext() async {
+    if (_queue.isEmpty) return;
+    
+    _currentIndex = (_currentIndex + 1) % _queue.length;
+    await setTrack(_queue[_currentIndex]);
+    await play();
+  }
+
+  Future<void> skipToPrevious() async {
+    if (_queue.isEmpty) return;
+    
+    // If we're more than 3 seconds into the song, restart it
+    final position = _player.position;
+    if (position.inSeconds > 3) {
+      await _player.seek(Duration.zero);
+      return;
+    }
+    
+    _currentIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
+    await setTrack(_queue[_currentIndex]);
+    await play();
+  }
+
+  Future<void> skipToIndex(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    
+    _currentIndex = index;
+    await setTrack(_queue[_currentIndex]);
+    await play();
+  }
+
+  // Shuffle functionality
+  Future<void> toggleShuffle() async {
+    _isShuffleOn = !_isShuffleOn;
+    _shuffleController.add(_isShuffleOn);
+    
+    if (_isShuffleOn) {
+      // Save current track to restore after shuffle
+      final currentTrack = _currentTrack;
+      
+      // Shuffle the queue
+      final random = Random();
+      _queue.shuffle(random);
+      
+      // Move current track to the beginning if it exists
+      if (currentTrack != null) {
+        final currentTrackIndex = _queue.indexWhere((t) => t.id == currentTrack.id);
+        if (currentTrackIndex != -1) {
+          final track = _queue.removeAt(currentTrackIndex);
+          _queue.insert(0, track);
+          _currentIndex = 0;
+        }
+      }
+    } else {
+      // Restore original order
+      final currentTrack = _currentTrack;
+      _queue = List.from(_originalQueue);
+      
+      // Find current track in original queue
+      if (currentTrack != null) {
+        _currentIndex = _queue.indexWhere((t) => t.id == currentTrack.id);
+        if (_currentIndex == -1) _currentIndex = 0;
+      }
+    }
+    
+    _queueController.add(_queue);
+  }
+
+  // Repeat functionality
+  Future<void> toggleRepeat() async {
+    switch (_repeatMode) {
+      case RepeatMode.off:
+        _repeatMode = RepeatMode.all;
+        break;
+      case RepeatMode.all:
+        _repeatMode = RepeatMode.one;
+        break;
+      case RepeatMode.one:
+        _repeatMode = RepeatMode.off;
+        break;
+    }
+    _repeatController.add(_repeatMode);
+  }
+
+  void setRepeatMode(RepeatMode mode) {
+    _repeatMode = mode;
+    _repeatController.add(_repeatMode);
   }
 
   Future<void> setTrack(Track track) async {
-    if (_busy) {
-      throw StateError('Player is busy. Please try again.');
-    }
-
-    _busy = true;
+    debugPrint('🎵 Setting track: ${track.name} by ${track.artistName}');
+    debugPrint('   Preview URL: ${track.previewUrl}');
+    debugPrint('   Duration: ${track.durationMs}ms');
+    
     _currentTrack = track;
     _trackController.add(track);
 
-    final localPath = track.localPath?.trim();
-    final url = track.previewUrl?.trim();
-
-    debugPrint('▶️ setTrack: id=${track.id} name="${track.name}" url=${url ?? "(null)"} localPath=${localPath ?? "(null)"}');
-
     try {
-      // Ensure any previous playback is stopped before swapping sources.
-      await _player.stop();
-
-      if (localPath != null && localPath.isNotEmpty) {
-        debugPrint('📁 Using localPath: $localPath');
-        await _player.setFilePath(localPath).timeout(_loadTimeout);
-        return;
+      if (track.localPath != null && track.localPath!.isNotEmpty) {
+        // Play from local file
+        debugPrint('   ▶️ Loading from local path: ${track.localPath}');
+        await _player.setFilePath(track.localPath!);
+      } else if (track.previewUrl != null && track.previewUrl!.isNotEmpty) {
+        // Play from preview URL (Deezer or Firebase/Cloudinary)
+        debugPrint('   ▶️ Loading from URL: ${track.previewUrl}');
+        await _player.setUrl(track.previewUrl!);
+      } else {
+        throw Exception('No valid audio source available for this track');
       }
-
-      if (url != null && url.isNotEmpty) {
-        final uri = Uri.tryParse(url);
-        if (uri == null || !uri.hasScheme) {
-          throw StateError('Invalid audio URL: $url');
-        }
-
-        // Windows-specific reliability fallback:
-        // Some remote streams can cause the Windows backend to hang. If the URL is reachable
-        // (as verified by the user in the browser) but the player freezes, caching locally
-        // first avoids that code path.
-        if (!kIsWeb && Platform.isWindows) {
-          try {
-            debugPrint('⬇️ Windows cache: downloading/caching $url');
-            final cachedPath = await _cacheRemoteUrlToFile(url);
-            try {
-              final f = File(cachedPath);
-              final size = await f.length();
-              debugPrint('✅ Cached file: $cachedPath (${(size / 1024 / 1024).toStringAsFixed(2)} MB)');
-            } catch (_) {}
-            await _player.setFilePath(cachedPath).timeout(_loadTimeout);
-            return;
-          } catch (e, st) {
-            debugPrint('⚠️ Windows cache fallback failed, trying direct URL: $e');
-            debugPrintStack(stackTrace: st);
-            // Fall through to direct URL source.
-          }
-        }
-
-        // On Windows, preloading some remote sources can block for a while.
-        // Using preload:false helps keep the UI responsive; playback will start on play().
-        await _player
-            .setAudioSource(
-              AudioSource.uri(uri),
-              preload: false,
-            )
-            .timeout(_loadTimeout);
-        debugPrint('🌐 Using direct URL AudioSource (preload:false)');
-        return;
-      }
-
-      throw StateError('Track has no playable audio URL (previewUrl/localPath are empty).');
-    } on PlayerException catch (e, st) {
-      debugPrint('❌ Audio load failed (PlayerException): ${e.code} - ${e.message}');
-      debugPrintStack(stackTrace: st);
-      rethrow;
-    } on PlayerInterruptedException catch (e, st) {
-      debugPrint('⚠️ Audio load interrupted: ${e.message}');
-      debugPrintStack(stackTrace: st);
-      rethrow;
-    } on TimeoutException catch (e, st) {
-      debugPrint('⏳ Audio load timed out: $e');
-      debugPrintStack(stackTrace: st);
-      rethrow;
-    } catch (e, st) {
-      debugPrint('❌ Audio load failed: $e');
-      debugPrintStack(stackTrace: st);
-      rethrow;
-    } finally {
-      _busy = false;
+      debugPrint('   ✅ Track loaded successfully');
+    } catch (e) {
+      debugPrint('❌ Error loading track: $e');
+      rethrow; // Throw error để UI có thể handle
     }
   }
 
   Future<void> play() async {
-    if (_player.audioSource == null) {
-      throw StateError('No audio source loaded. Call setTrack() first.');
-    }
-    await _player.play().timeout(_playTimeout);
-  }
-
-  /// Convenience helper used by UI: load track (url/path) then start playback.
-  Future<void> playTrack(Track track) async {
-    await setTrack(track);
-    await play();
+    await _player.play();
   }
 
   Future<void> pause() async {
@@ -233,5 +296,8 @@ class AudioPlayerService {
     await _trackController.close();
     await _playingController.close();
     await _progressController.close();
+    await _queueController.close();
+    await _shuffleController.close();
+    await _repeatController.close();
   }
 }

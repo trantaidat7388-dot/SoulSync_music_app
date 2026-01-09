@@ -463,4 +463,93 @@ class FirebaseService extends ChangeNotifier {
     List<dynamic> following = _userProfile!['followingArtists'] ?? [];
     return following.contains(artistId);
   }
+
+  // ========== TRACKS MANAGEMENT ==========
+  
+  // Get all tracks from Firestore
+  Future<List<Map<String, dynamic>>> getAllTracks({int limit = 50}) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('tracks')
+          .limit(limit)
+          .get();
+      
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      debugPrint('Error loading tracks: $e');
+      return [];
+    }
+  }
+
+  // Search tracks in Firestore
+  Future<List<Map<String, dynamic>>> searchTracks(String query, {int limit = 30}) async {
+    try {
+      final queryLower = query.toLowerCase();
+      
+      QuerySnapshot snapshot = await _firestore
+          .collection('tracks')
+          .limit(100) // Get more to filter
+          .get();
+      
+      // Filter locally (Firestore doesn't support full-text search without extensions)
+      final results = snapshot.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final name = (data['name'] ?? '').toString().toLowerCase();
+        final artist = (data['artistName'] ?? '').toString().toLowerCase();
+        final album = (data['albumName'] ?? '').toString().toLowerCase();
+        
+        return name.contains(queryLower) || 
+               artist.contains(queryLower) || 
+               album.contains(queryLower);
+      }).take(limit).map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+      
+      return results;
+    } catch (e) {
+      debugPrint('Error searching tracks: $e');
+      return [];
+    }
+  }
+
+  // Get track by ID
+  Future<Map<String, dynamic>?> getTrackById(String trackId) async {
+    try {
+      DocumentSnapshot doc = await _firestore
+          .collection('tracks')
+          .doc(trackId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting track: $e');
+      return null;
+    }
+  }
+
+  // Stream all tracks (realtime updates)
+  Stream<List<Map<String, dynamic>>> tracksStream({int limit = 50}) {
+    return _firestore
+        .collection('tracks')
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    });
+  }
 }

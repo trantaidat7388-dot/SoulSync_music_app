@@ -702,7 +702,8 @@ class _SearchResultItem extends StatelessWidget {
         // Phát nhạc ngay khi tap
         final player = AudioPlayerService.instance;
         try {
-          await player.playTrack(track);
+          await player.setTrack(track);
+          await player.play();
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

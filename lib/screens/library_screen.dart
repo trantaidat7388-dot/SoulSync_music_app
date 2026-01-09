@@ -666,7 +666,8 @@ class _SongsTabState extends State<_SongsTab> {
                           );
                         }
                         try {
-                          await player.playTrack(track);
+                          await player.setTrack(track);
+                          await player.play();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -701,7 +702,8 @@ class _SongsTabState extends State<_SongsTab> {
                     );
                   }
                   try {
-                    await player.playTrack(track);
+                    await player.setTrack(track);
+                    await player.play();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       // Mở màn hình Now Playing
