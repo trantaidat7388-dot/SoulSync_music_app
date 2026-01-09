@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../screens/now_playing_screen.dart';
 import '../models/music_models.dart';
-import '../services/audio_player_service.dart';
+import '../services/audio_player_service.dart' show AudioPlayerService, RepeatMode;
 
 class DynamicIslandPlayer extends StatefulWidget {
   const DynamicIslandPlayer({super.key});
@@ -23,9 +23,15 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
   double _volume = 0.7;
 
   Track? _track;
+  Duration _currentPosition = Duration.zero;
+  Duration _totalDuration = Duration.zero;
   StreamSubscription<Track?>? _trackSub;
   StreamSubscription<bool>? _playingSub;
   StreamSubscription<double>? _progressSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration?>? _durationSub;
+  StreamSubscription<bool>? _shuffleSub;
+  StreamSubscription<RepeatMode>? _repeatSub;
 
   late AnimationController _animationController;
   late AnimationController _waveAnimationController;
@@ -58,6 +64,8 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     final player = AudioPlayerService.instance;
     _track = player.currentTrack;
     _isPlaying = player.isPlaying;
+    _isShuffled = player.isShuffleOn;
+    _repeatMode = player.repeatMode.index;
 
     _trackSub = player.trackStream.listen((t) {
       if (!mounted) return;
@@ -79,6 +87,42 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
         _progress = pct;
       });
     });
+
+    // Listen to position stream for real-time progress
+    _positionSub = player.player.positionStream.listen((position) {
+      if (!mounted) return;
+      setState(() {
+        _currentPosition = position;
+      });
+    });
+
+    // Listen to duration stream
+    _durationSub = player.player.durationStream.listen((duration) {
+      if (!mounted) return;
+      setState(() {
+        _totalDuration = duration ?? Duration.zero;
+      });
+    });
+
+    // Initialize current position and duration
+    _currentPosition = player.player.position;
+    _totalDuration = player.player.duration ?? Duration.zero;
+
+    // Listen to shuffle changes
+    _shuffleSub = player.shuffleStream.listen((isShuffled) {
+      if (!mounted) return;
+      setState(() {
+        _isShuffled = isShuffled;
+      });
+    });
+
+    // Listen to repeat mode changes
+    _repeatSub = player.repeatStream.listen((mode) {
+      if (!mounted) return;
+      setState(() {
+        _repeatMode = mode.index;
+      });
+    });
   }
 
   @override
@@ -88,6 +132,10 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     _trackSub?.cancel();
     _playingSub?.cancel();
     _progressSub?.cancel();
+    _positionSub?.cancel();
+    _durationSub?.cancel();
+    _shuffleSub?.cancel();
+    _repeatSub?.cancel();
     super.dispose();
   }
 
@@ -139,42 +187,61 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     );
   }
 
-  void _toggleShuffle() {
-    setState(() {
-      _isShuffled = !_isShuffled;
-    });
+  Future<void> _toggleShuffle() async {
+    await AudioPlayerService.instance.toggleShuffle();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isShuffled ? '🔀 Shuffle ON' : '➡️ Shuffle OFF'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  void _toggleRepeat() {
-    setState(() {
-      _repeatMode = (_repeatMode + 1) % 3;
-    });
+  Future<void> _toggleRepeat() async {
+    await AudioPlayerService.instance.toggleRepeat();
+    if (mounted) {
+      final mode = _repeatMode == 0 ? 'OFF' : _repeatMode == 1 ? 'ALL' : 'ONE';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔁 Repeat $mode'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  void _skipPrevious() {
-    setState(() {
-      _progress = 0.0;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('⏮️ Previous track'),
-        duration: Duration(milliseconds: 800),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  Future<void> _skipPrevious() async {
+    try {
+      await AudioPlayerService.instance.skipToPrevious();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    }
   }
 
-  void _skipNext() {
-    setState(() {
-      _progress = 0.0;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('⏭️ Next track'),
-        duration: Duration(milliseconds: 800),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  Future<void> _skipNext() async {
+    try {
+      await AudioPlayerService.instance.skipToNext();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    }
   }
 
   void _openNowPlaying() {
@@ -209,11 +276,10 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     );
   }
 
-  String _formatDuration(double progress, int totalSeconds) {
-    final currentSeconds = (progress * totalSeconds).round();
-    final minutes = currentSeconds ~/ 60;
-    final seconds = currentSeconds % 60;
-    return '${minutes.toString().padLeft(1, '0')}:${seconds.toString().padLeft(2, '0')}';
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -380,7 +446,8 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
     final title = track?.name.trim().isNotEmpty == true ? track!.name : 'Unknown';
     final artist = track?.artistName.trim().isNotEmpty == true ? track!.artistName : 'Unknown Artist';
     final artUrl = track?.imageUrl.trim() ?? '';
-    final totalMs = track?.durationMs ?? 0;
+    // Sử dụng duration thực tế từ AudioPlayer thay vì track.durationMs
+    final totalMs = _totalDuration.inMilliseconds;
 
     return AnimatedBuilder(
       animation: _contentAnimation,
@@ -518,7 +585,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                _formatDuration(_progress, 188),
+                                _formatDuration(_currentPosition),
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
                                   fontSize: 11,
@@ -526,7 +593,7 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                                 ),
                               ),
                               Text(
-                                '3:08',
+                                _formatDuration(_totalDuration),
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.5),
                                   fontSize: 11,
@@ -599,6 +666,8 @@ class _DynamicIslandPlayerState extends State<DynamicIslandPlayer>
                                 setState(() {
                                   _volume = value;
                                 });
+                                // Điều chỉnh volume thực tế
+                                AudioPlayerService.instance.player.setVolume(value);
                               },
                             ),
                           ),
