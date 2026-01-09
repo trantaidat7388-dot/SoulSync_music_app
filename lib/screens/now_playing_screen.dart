@@ -13,7 +13,6 @@ class NowPlayingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final player = AudioPlayerService.instance;
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
@@ -54,8 +53,8 @@ class NowPlayingScreen extends StatelessWidget {
                           SizedBox(height: 24),
                           _TrackInfo(),
                           SizedBox(height: 32),
-                          _ReactiveProgressBar(),
-                          SizedBox(height: 40),
+                          _ProgressBar(),
+                          SizedBox(height: 32),
                           _PlaybackControls(),
                           SizedBox(height: 40),
                           _UpNextList(),
@@ -209,9 +208,9 @@ class _AlbumArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = AudioPlayerService.instance;
+    
     return StreamBuilder<Track?>(
       stream: player.trackStream,
-      initialData: player.currentTrack,
       builder: (context, snapshot) {
         final track = snapshot.data ?? player.currentTrack;
         final imageUrl = track?.imageUrl ?? 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9fxCh6ix0aWLgour1YPDsqEAdkSI_q85A_PQ-r-IpV15bFAnCSroUA2hJvtpfEecrMtv6AED61ldXvgn4uH-IiRnElltY4h_YrxbBlPx3BnrGwXGEC9aE1okxT9imLOMmawLxC-IYRS_ABtMvc3IXv7FwqF2kmLHHLjcq9SxUET6r8oSBK48CJcInyPnZPeWVO9owgW3QrGXXfzWiJtRErdJyzR2cQ_vRGO1JqxYeoT2y70dxJyRIhCrL-u-OB3Ed4A9wPIaxQw';
@@ -254,9 +253,33 @@ class _AlbumArt extends StatelessWidget {
                       offset: const Offset(0, 10),
                     ),
                   ],
-                  image: DecorationImage(
-                    image: NetworkImage(imageUrl),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: Image.network(
+                    imageUrl,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.surfaceLight,
+                        child: const Icon(
+                          Icons.music_note,
+                          size: 100,
+                          color: AppColors.primary,
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: AppColors.surfaceLight,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -274,6 +297,7 @@ class _TrackInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = AudioPlayerService.instance;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -286,8 +310,7 @@ class _TrackInfo extends StatelessWidget {
                 stream: player.trackStream,
                 initialData: player.currentTrack,
                 builder: (context, snapshot) {
-                  final track = snapshot.data ?? player.currentTrack;
-                  final title = track?.name ?? 'No track';
+                  final title = snapshot.data?.name ?? 'No track';
                   return Text(
                     title,
                     style: const TextStyle(
@@ -306,8 +329,7 @@ class _TrackInfo extends StatelessWidget {
                 stream: player.trackStream,
                 initialData: player.currentTrack,
                 builder: (context, snapshot) {
-                  final track = snapshot.data ?? player.currentTrack;
-                  final artist = track?.artistName ?? '';
+                  final artist = snapshot.data?.artistName ?? '';
                   return Text(
                     artist,
                     style: const TextStyle(
@@ -321,73 +343,114 @@ class _TrackInfo extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.favorite_border_rounded, size: 28),
-          color: AppColors.textMuted,
-        ),
       ],
     );
   }
 }
 
-class _ReactiveProgressBar extends StatelessWidget {
-  const _ReactiveProgressBar();
+class _ProgressBar extends StatefulWidget {
+  const _ProgressBar();
 
-  String _formatDuration(double progressPct, int totalSeconds) {
-    final currentSeconds = (progressPct * totalSeconds).round();
-    final currentMinutes = currentSeconds ~/ 60;
-    final currentSecs = currentSeconds % 60;
-    return '${currentMinutes.toString()}:${currentSecs.toString().padLeft(2, '0')}';
-  }
+  @override
+  State<_ProgressBar> createState() => _ProgressBarState();
+}
 
-  String _formatTotalDuration(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString()}:${seconds.toString().padLeft(2, '0')}';
+class _ProgressBarState extends State<_ProgressBar> {
+  double _sliderValue = 0.0;
+  bool _isDragging = false;
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   @override
   Widget build(BuildContext context) {
     final player = AudioPlayerService.instance;
-    return StreamBuilder<double>(
-      stream: player.progressStream,
-      initialData: 0.0,
-      builder: (context, snapshot) {
-        final pct = snapshot.data ?? 0.0;
-        return StreamBuilder<Track?>(
-          stream: player.trackStream,
-          initialData: player.currentTrack,
-          builder: (context, trackSnapshot) {
-            final track = trackSnapshot.data ?? player.currentTrack;
-            final duration = (track?.durationMs ?? 0) ~/ 1000;
-            
-            return Column(
-              children: [
-                Slider(
-                  value: pct.clamp(0.0, 1.0),
-                  onChanged: (_) {},
-                  activeColor: AppColors.primary,
-                  inactiveColor: AppColors.textMuted.withOpacity(0.3),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(pct, duration),
-                      style: const TextStyle(color: AppColors.textMuted),
-                    ),
-                    Text(
-                      _formatTotalDuration(duration),
-                      style: const TextStyle(color: AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ],
+
+    return Column(
+      children: [
+        // Slider
+        StreamBuilder<Duration>(
+          stream: player.player.positionStream,
+          builder: (context, positionSnapshot) {
+            final position = positionSnapshot.data ?? Duration.zero;
+            final duration = player.player.duration ?? Duration.zero;
+
+            // Only update slider value when not dragging
+            if (!_isDragging && duration.inMilliseconds > 0) {
+              _sliderValue = position.inMilliseconds / duration.inMilliseconds;
+              _sliderValue = _sliderValue.clamp(0.0, 1.0);
+            }
+
+            return SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.surfaceLight,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withOpacity(0.2),
+              ),
+              child: Slider(
+                value: _sliderValue,
+                min: 0.0,
+                max: 1.0,
+                onChangeStart: (value) {
+                  setState(() => _isDragging = true);
+                },
+                onChanged: (value) {
+                  setState(() => _sliderValue = value);
+                },
+                onChangeEnd: (value) async {
+                  setState(() => _isDragging = false);
+                  final duration = player.player.duration ?? Duration.zero;
+                  final newPosition = Duration(
+                    milliseconds: (value * duration.inMilliseconds).round(),
+                  );
+                  await player.seek(newPosition);
+                },
+              ),
             );
           },
-        );
-      },
+        ),
+        // Time labels
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: StreamBuilder<Duration>(
+            stream: player.player.positionStream,
+            builder: (context, positionSnapshot) {
+              final position = positionSnapshot.data ?? Duration.zero;
+              final duration = player.player.duration ?? Duration.zero;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDuration(position),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  Text(
+                    _formatDuration(duration),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -401,81 +464,142 @@ class _PlaybackControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.shuffle_rounded, size: 28),
-          color: AppColors.textMuted,
+        // Shuffle button
+        StreamBuilder<bool>(
+          stream: player.shuffleStream,
+          initialData: player.isShuffleOn,
+          builder: (context, snapshot) {
+            final isShuffleOn = snapshot.data ?? false;
+            return IconButton(
+              onPressed: () async {
+                await player.toggleShuffle();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isShuffleOn ? 'Tắt phát ngẫu nhiên' : 'Bật phát ngẫu nhiên'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.shuffle_rounded, size: 28),
+              color: isShuffleOn ? AppColors.primary : AppColors.textMuted,
+            );
+          },
         ),
+        // Previous button
         IconButton(
-          onPressed: () {},
+          onPressed: () async {
+            try {
+              await player.skipToPrevious();
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi: $e')),
+                );
+              }
+            }
+          },
           icon: const Icon(Icons.skip_previous_rounded, size: 40),
           color: AppColors.textMain,
         ),
-        Container(
-          height: 80,
-          width: 80,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.4),
-                blurRadius: 30,
-                offset: const Offset(0, 8),
+        // Play/Pause button
+        StreamBuilder<bool>(
+          stream: player.playingStream,
+          initialData: player.isPlaying,
+          builder: (context, snapshot) {
+            final isPlaying = snapshot.data ?? false;
+            return Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.4),
+                    blurRadius: 30,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: StreamBuilder<bool>(
-            stream: player.playingStream,
-            builder: (context, snapshot) {
-              final playing = snapshot.data ?? player.isPlaying;
-              return IconButton(
+              child: IconButton(
                 onPressed: () async {
-                  try {
-                    if (playing) {
-                      await player.pause();
-                    } else {
-                      await player.play();
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Không thể phát: $e')),
-                      );
-                    }
+                  if (isPlaying) {
+                    await player.pause();
+                  } else {
+                    await player.play();
                   }
                 },
                 icon: Icon(
-                  playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   size: 44,
                 ),
                 color: Colors.white,
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
+        // Next button
         IconButton(
-          onPressed: () {},
+          onPressed: () async {
+            try {
+              await player.skipToNext();
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi: $e')),
+                );
+              }
+            }
+          },
           icon: const Icon(Icons.skip_next_rounded, size: 40),
           color: AppColors.textMain,
         ),
-        Stack(
-          alignment: Alignment.topRight,
-          children: [
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.repeat_rounded, size: 28),
-              color: AppColors.primary,
-            ),
-            const Positioned(
-              top: 8,
-              right: 8,
-              child: CircleAvatar(
-                radius: 3,
-                backgroundColor: AppColors.primary,
-              ),
-            )
-          ],
+        // Repeat button
+        StreamBuilder<RepeatMode>(
+          stream: player.repeatStream,
+          initialData: player.repeatMode,
+          builder: (context, snapshot) {
+            final repeatMode = snapshot.data ?? RepeatMode.off;
+            IconData iconData;
+            Color iconColor;
+            String message;
+            
+            switch (repeatMode) {
+              case RepeatMode.off:
+                iconData = Icons.repeat_rounded;
+                iconColor = AppColors.textMuted;
+                message = 'Bật lặp lại tất cả';
+                break;
+              case RepeatMode.all:
+                iconData = Icons.repeat_rounded;
+                iconColor = AppColors.primary;
+                message = 'Bật lặp lại một bài';
+                break;
+              case RepeatMode.one:
+                iconData = Icons.repeat_one_rounded;
+                iconColor = AppColors.primary;
+                message = 'Tắt lặp lại';
+                break;
+            }
+            
+            return IconButton(
+              onPressed: () async {
+                await player.toggleRepeat();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                }
+              },
+              icon: Icon(iconData, size: 28),
+              color: iconColor,
+            );
+          },
         ),
       ],
     );
@@ -487,116 +611,177 @@ class _UpNextList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final player = AudioPlayerService.instance;
+    
+    return StreamBuilder<List<Track>>(
+      stream: player.queueStream,
+      initialData: player.queue,
+      builder: (context, queueSnapshot) {
+        final queue = queueSnapshot.data ?? [];
+        final currentIndex = player.currentIndex;
+        
+        // Get next 3 tracks
+        final upNext = <Track>[];
+        for (int i = 1; i <= 3 && (currentIndex + i) < queue.length; i++) {
+          upNext.add(queue[currentIndex + i]);
+        }
+        
+        if (upNext.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Column(
           children: [
-            const Text(
-              'Up Next',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'SEE ALL',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildListItem(
-          'Coffee Shop Vibes',
-          'Jazz Collective',
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuD4zTvs1ZSng5Zs-6SN5e6BY4THURyLABqJuRzTseMfznR7cdc845lQnuxW_Byz_ueROCw2Hi8LXbQB_UR16NDwRAkvGIQGq4UYgSDdkZwtqAhbJSSR0LO4GYw1U9XAcqiEZUIrpVEOh07cioPqi1a42PawaVEWvSbkbqTmdUHo7oM-W1uR3o5oWQZPdph52lmM_rZAKUB2TtCdBP82GoLoClCKT7MmwfYAq0qdj7O6Unr5NCwYW8o4kMrGa1m_DtQjKdF2xDxXSw',
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          'Rainy Day Reading',
-          'Acoustic Dreams',
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAmtFifzozcQm7xAGiCL7_6Icz5OfmgQWrbVoM4jjIdaOwTrkGuVQBLHWYPVVl9KRG_eGN6qkbhIRxMzltH10xZUD1QvtBeAwFhEMq66Mk7TPZUgzzMy9oj9_OTYdmYXISguXLBSZp4MDLLhyrM7XuBFnhroFY7-npxaToy02371fr_CCidrCgPkI6CeLJPaz0JXvkLQR52PbbKa83XvoNM2l4F5Z0FYd3xtzsQF5Wj-ydFhTa2lHb92aaWFpkPlJAzR_1vTDVaVQ',
-        ),
-        const SizedBox(height: 12),
-        _buildListItem(
-          'Late Night Coding',
-          'Synthwave Boy',
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuC0twC4bcYkDO_Ks18aY0qp5CTNDlfne1DHEy86WFtTl5AGTHEcFCOIBANtP_w1AmYviNfj9jrQ4svLAER01_WSQ9mTnYs4199WII8b2ASOEJp2SPHkjL88UbfbXPsHM85vqFl3uDkzkGQ6BvMzTbp6RqE0jWYOE2z7Ppsq_MfOCjK84lhjE0oBxxPbnnGLNw9WjIDH6fCXfMqWe43k0EmAHbLqNZXgLGDXaPXnk6QSWMI2rcRmPPHoavM7RqKKPYmpV4-2KLxUGg',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildListItem(String title, String artist, String imageUrl) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.drag_indicator_rounded, color: AppColors.textMuted, size: 20),
-          const SizedBox(width: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
-              height: 48,
-              width: 48,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
+                const Text(
+                  'Up Next',
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
                     color: AppColors.textMain,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  artist,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w500,
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const QueueScreen()),
+                    );
+                  },
+                  child: const Text(
+                    'SEE ALL',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      letterSpacing: 1,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
-            color: AppColors.textMuted.withOpacity(0.5),
-          ),
-        ],
+            const SizedBox(height: 16),
+            ...upNext.asMap().entries.map((entry) {
+              final track = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(bottom: entry.key < upNext.length - 1 ? 12 : 0),
+                child: _buildListItem(
+                  context,
+                  track,
+                  currentIndex + entry.key + 1,
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, Track track, int queueIndex) {
+    final player = AudioPlayerService.instance;
+    
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await player.skipToIndex(queueIndex);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi: $e')),
+            );
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.drag_indicator_rounded, color: AppColors.textMuted, size: 20),
+            const SizedBox(width: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                track.imageUrl,
+                height: 48,
+                width: 48,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 48,
+                    width: 48,
+                    color: AppColors.surfaceLight,
+                    child: const Icon(Icons.music_note, color: AppColors.textMuted),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    track.artistName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () async {
+                try {
+                  await player.removeFromQueue(queueIndex);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã xóa khỏi hàng chờ'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi: $e')),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+              color: AppColors.textMuted.withOpacity(0.5),
+            ),
+          ],
+        ),
       ),
     );
   }
